@@ -4,7 +4,6 @@ import { auth, googleProvider } from "./firebase";
 import "./Login.css";
 
 export default function Login({ setUser }) {
-  const [isSignUp, setIsSignUp] = useState(false);
   const [userRole, setUserRole] = useState("");
   const [loading, setLoading] = useState(false);
 
