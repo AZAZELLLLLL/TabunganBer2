@@ -117,13 +117,18 @@ body {
   display: flex;
   flex-direction: column;
   gap: 30px;
+}.brand-logo {
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 15px;
+  background: transparent;
 }
 
-.brand-emoji {
-  font-size: 80px;
-  animation: bounce 2s ease-in-out infinite;
+.brand-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
-
 @keyframes bounce {
   0%,
   100% {

@@ -15,8 +15,11 @@ export default function Login({ setUser }) {
 
     try {
       setLoading(true);
+      console.log("Starting Google Sign-In...");
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
+
+      console.log("Login successful:", user.email);
 
       // Simpan role ke localStorage
       localStorage.setItem("userRole", userRole);
@@ -31,7 +34,9 @@ export default function Login({ setUser }) {
       });
     } catch (error) {
       console.error("Login failed:", error);
-      alert("Login gagal! Coba lagi.");
+      console.error("Error code:", error.code);
+      console.error("Error message:", error.message);
+      alert(`Login gagal! ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -51,7 +56,9 @@ export default function Login({ setUser }) {
         {/* Left Side - Branding */}
         <div className="login-brand-section">
           <div className="brand-content">
-            <div className="brand-emoji">💑</div>
+           <div className="brand-logo">
+            <img src="/logo_nobg.png" alt="Infinity Love" />
+          </div>
             <h1 className="brand-name">Yubul</h1>
             <p className="brand-tagline">
               Tabungan berdua bareng pacar jadi makin <span>harmonis</span> 💕
@@ -183,7 +190,9 @@ export default function Login({ setUser }) {
       <div className="mobile-only">
         <div className="login-card-mobile">
           <div className="login-header">
-            <div className="brand-emoji-mobile">💑</div>
+            <div className="brand-logo">
+            <img src="/logo_nobg.png" alt="Infinity Love" />
+          </div>
             <h2>Yubul</h2>
             <p>Tabungan Berdua Jadi Harmonis</p>
           </div>

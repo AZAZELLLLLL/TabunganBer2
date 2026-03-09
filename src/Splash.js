@@ -33,11 +33,9 @@ export default function Splash({ onComplete }) {
             <span className="heart heart-4">✨</span>
           </div>
 
-         {/* Logo & Title */}
+  {/* Logo & Title */}
           <div className="splash-logo">
-            <div className="logo-circle">
-              <span className="logo-emoji">💑</span>
-            </div>
+            <img src="/logo_nobg.png" alt="Infinity Love" className="logo-image" />
           </div>
 
           <h1 className="splash-brand">Yubul</h1>
