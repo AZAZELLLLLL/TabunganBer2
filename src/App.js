@@ -75,14 +75,6 @@ function App() {
     setShowSplash(false);
   };
 
-  const handleGoBack = () => {
-    if (prevPage) {
-      handleNavigate(prevPage);
-    } else {
-      handleNavigate("menu"); // Kalau tidak ada prevPage, kembali ke menu
-    }
-  };
-
   // Loading state
   if (loading) {
     return <div className="app loading">Loading...</div>;

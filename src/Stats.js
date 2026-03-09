@@ -15,8 +15,6 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  LineChart,
-  Line,
   PieChart,
   Pie,
   Cell,
@@ -140,7 +138,6 @@ export default function Stats({ user, onNavigate }) {
   // Percentage
   const expensePercentage = totalIncome > 0 ? ((totalExpense / totalIncome) * 100).toFixed(1) : 0;
   const incomePercentage = totalIncome > 0 ? 100 : 0;
-  const balancePercentage = totalIncome > 0 ? ((totalBalance / totalIncome) * 100).toFixed(1) : 0;
 
   // Category breakdown
   const categoryEmoji = {
