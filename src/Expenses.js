@@ -13,174 +13,116 @@ import "./Expenses.css";
 
 export default function Expenses({ user, onNavigate }) {
   const [expenses, setExpenses] = useState([]);
-  const [amount, setAmount] = useState("");
-  const [category, setCategory] = useState("makan");
-  const [description, setDescription] = useState("");
+  const [expenseAmount, setExpenseAmount] = useState("");
+  const [expenseCategory, setExpenseCategory] = useState("makan");
+  const [expenseDescription, setExpenseDescription] = useState("");
   const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(false);
-  const [filterMonth, setFilterMonth] = useState(new Date());
+  const [filterCategory, setFilterCategory] = useState("semua");
+  const [searchDescription, setSearchDescription] = useState("");
 
-  // Fetch data real-time
+  // Fetch expenses real-time
   useEffect(() => {
     const groupId = user.groupId || "default";
-
     const expensesQuery = query(
       collection(db, "expenses"),
       where("groupId", "==", groupId)
     );
 
-    const unsubscribe = onSnapshot(expensesQuery, (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setExpenses(data.sort((a, b) => b.date - a.date));
-    });
+    const unsubscribe = onSnapshot(
+      expensesQuery,
+      (snapshot) => {
+        const data = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setExpenses(data.sort((a, b) => b.date - a.date));
+      },
+      (error) => {
+        console.error("Error fetching expenses:", error);
+      }
+    );
 
     return unsubscribe;
   }, [user.groupId]);
 
-  const handleIncreaseAmount = () => {
-    const current = parseFloat(amount) || 0;
-    setAmount((current + 5000).toString());
-  };
-
-  const handleDecreaseAmount = () => {
-    const current = parseFloat(amount) || 0;
-    if (current >= 5000) {
-      setAmount((current - 5000).toString());
-    }
-  };
-
   const handleAddExpense = async (e) => {
     e.preventDefault();
 
-    if (!amount || !description) {
-      alert("Isi jumlah dan keterangan pengeluaran!");
+    if (!expenseAmount || parseFloat(expenseAmount) <= 0) {
+      alert("Masukkan jumlah pengeluaran yang valid!");
       return;
     }
 
-    if (parseFloat(amount) <= 0) {
-      alert("Jumlah harus lebih dari 0!");
+    if (!expenseDescription.trim()) {
+      alert("Masukkan deskripsi pengeluaran!");
       return;
     }
 
     setLoading(true);
     try {
-      const expenseAmount = parseFloat(amount);
-      const expenseDate_obj = new Date(expenseDate);
-
-      // 1. TAMBAH EXPENSE
       await addDoc(collection(db, "expenses"), {
         groupId: user.groupId || "default",
         userId: user.uid,
         userName: user.name,
         userPhoto: user.photo,
-        userRole: user.role,
-        amount: expenseAmount,
-        category,
-        description,
-        date: expenseDate_obj,
+        userRole: user.role || "cowo",
+        amount: parseFloat(expenseAmount),
+        category: expenseCategory,
+        description: expenseDescription,
+        date: new Date(expenseDate),
       });
 
-      console.log("✅ Expense ditambahkan:", { amount: expenseAmount, category, description });
-
-      // 2. AUTO-DEDUCT SAVINGS (CREATE NEGATIVE SAVINGS ENTRY)
+      // Auto-deduct from savings
       await addDoc(collection(db, "savings"), {
         groupId: user.groupId || "default",
-        role: "deduction", // Special role untuk pengeluaran
-        userName: user.name,
-        userPhoto: user.photo,
-        userId: user.uid,
-        amount: -expenseAmount, // NEGATIF untuk menandakan deduction
-        category: category, // Track kategori untuk analytics
-        description: `Pengeluaran: ${description}`, // Deskripsi lengkap
-        date: expenseDate_obj,
-        type: "expense_deduction", // Marker untuk tahu ini dari expense
+        role: "deduction",
+        amount: -parseFloat(expenseAmount),
+        type: "expense_deduction",
+        description: `Pengeluaran: ${expenseDescription}`,
+        date: new Date(expenseDate),
       });
 
-      console.log("✅ Savings otomatis berkurang:", { deductAmount: -expenseAmount });
-
-      setAmount("");
-      setDescription("");
-      setCategory("makan");
+      setExpenseAmount("");
+      setExpenseDescription("");
+      setExpenseCategory("makan");
       setExpenseDate(new Date().toISOString().split('T')[0]);
-      alert("Pengeluaran ditambahkan & tabungan otomatis berkurang! 💸");
+      alert("Pengeluaran berhasil ditambahkan! 💸");
     } catch (error) {
       console.error("Error adding expense:", error);
-      alert("Gagal menambah pengeluaran!");
+      alert(`Gagal menambah pengeluaran! ${error.message}`);
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteExpense = async (id) => {
-    if (window.confirm("Hapus pengeluaran ini? (Tabungan akan kembali bertambah)")) {
+    if (window.confirm("Hapus pengeluaran ini?")) {
       try {
-        // 1. Get expense data
-        const expenseDoc = await fetch(
-          `https://firestore.googleapis.com/v1/projects/${
-            process.env.REACT_APP_PROJECT_ID || "tabungan-ber2-c147e"
-          }/databases/(default)/documents/expenses/${id}`
-        );
-
-        // 2. Delete expense
         await deleteDoc(doc(db, "expenses", id));
-
-        // 3. Find and delete corresponding deduction from savings
-        // (Ini akan di-handle otomatis oleh logic di Dashboard)
-        
-        alert("Pengeluaran berhasil dihapus! Tabungan kembali normal. ✅");
+        alert("Pengeluaran berhasil dihapus!");
       } catch (error) {
-        console.error("Error deleting:", error);
-        alert("Gagal menghapus!");
+        console.error("Error deleting expense:", error);
+        alert("Gagal menghapus pengeluaran!");
       }
     }
   };
 
-  // Filter by month
-  const monthStart = new Date(
-    filterMonth.getFullYear(),
-    filterMonth.getMonth(),
-    1
-  );
-  const monthEnd = new Date(
-    filterMonth.getFullYear(),
-    filterMonth.getMonth() + 1,
-    0
-  );
+  // Filter expenses
+  const filteredExpenses = expenses
+    .filter((e) => filterCategory === "semua" || e.category === filterCategory)
+    .filter((e) => e.description.toLowerCase().includes(searchDescription.toLowerCase()));
 
-  const filteredExpenses = expenses.filter((e) => {
-    const eDate = e.date?.toDate ? e.date.toDate() : new Date(e.date);
-    return eDate >= monthStart && eDate <= monthEnd;
-  });
-
-  const totalExpenses = filteredExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
-
-  const categoryEmoji = {
-    makan: "🍕",
-    transport: "🚗",
-    hiburan: "🎬",
-    belanja: "🛍️",
-    kesehatan: "💊",
-    utilitas: "💡",
-    lainnya: "💰",
+  // Categories
+  const categories = {
+    makan: { label: "🍕 Makan & Minuman", color: "#FF6B6B" },
+    transport: { label: "🚗 Transport", color: "#4ECDC4" },
+    hiburan: { label: "🎬 Hiburan", color: "#FFE66D" },
+    belanja: { label: "🛍️ Belanja", color: "#A8E6CF" },
+    kesehatan: { label: "💊 Kesehatan", color: "#FF8B94" },
+    utilitas: { label: "💡 Utilitas", color: "#C7CEEA" },
+    lainnya: { label: "💰 Lainnya", color: "#B19CD9" },
   };
-
-  const categoryLabel = {
-    makan: "Makan & Minuman",
-    transport: "Transport",
-    hiburan: "Hiburan",
-    belanja: "Belanja",
-    kesehatan: "Kesehatan",
-    utilitas: "Utilitas",
-    lainnya: "Lainnya",
-  };
-
-  const currentMonth = filterMonth.toLocaleDateString("id-ID", {
-    month: "long",
-    year: "numeric",
-  });
 
   return (
     <>
@@ -216,210 +158,170 @@ export default function Expenses({ user, onNavigate }) {
       </button>
 
       <div className="expenses-page">
-        {/* Form Section */}
-        <div className="section form-section">
-          <h2>➕ Tambah Pengeluaran</h2>
-          <p style={{ color: "#8B6F9E", fontSize: "13px", marginBottom: "15px" }}>
-            ℹ️ Tabungan akan otomatis berkurang sesuai jumlah pengeluaran
-          </p>
-          
-          {/* Date Picker */}
-          <div className="expense-date-section">
-            <label>📅 Tanggal Pengeluaran</label>
-            <input
-              type="date"
-              value={expenseDate}
-              onChange={(e) => setExpenseDate(e.target.value)}
-              disabled={loading}
-              className="date-input"
-            />
+        <div className="container">
+          {/* Header */}
+          <div className="expenses-header">
+            <h1>💸 Kelola Pengeluaran</h1>
+            <p>Catat setiap pengeluaran kalian</p>
           </div>
 
-          <form onSubmit={handleAddExpense} className="expense-form">
-            <div className="form-group">
-              <label>Jumlah (Rp)</label>
-              <div className="custom-number-input">
-                <button
-                  type="button"
-                  onClick={handleDecreaseAmount}
-                  disabled={loading || !amount || parseFloat(amount) === 0}
-                  className="decrement-btn"
-                >
-                  −
-                </button>
-                <div className="amount-display">
-                  {amount ? `Rp ${parseFloat(amount).toLocaleString("id-ID")}` : "Rp 0"}
-                </div>
-                <button
-                  type="button"
-                  onClick={handleIncreaseAmount}
-                  disabled={loading}
-                  className="increment-btn"
-                >
-                  +
-                </button>
-              </div>
-            </div>
+          {/* Add Expense Section */}
+          <div className="section add-expense-section">
+            <h2>➕ Tambah Pengeluaran</h2>
 
+            {/* Date Picker */}
             <div className="form-group">
-              <label>Kategori</label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                disabled={loading}
-              >
-                <option value="makan">🍕 Makan & Minuman</option>
-                <option value="transport">🚗 Transport</option>
-                <option value="hiburan">🎬 Hiburan</option>
-                <option value="belanja">🛍️ Belanja</option>
-                <option value="kesehatan">💊 Kesehatan</option>
-                <option value="utilitas">💡 Utilitas</option>
-                <option value="lainnya">💰 Lainnya</option>
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>Keterangan</label>
+              <label>📅 Tanggal Pengeluaran</label>
               <input
-                type="text"
-                placeholder="Contoh: Makan nasi goreng di warteg"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                disabled={loading}
-                required
+                type="date"
+                value={expenseDate}
+                onChange={(e) => setExpenseDate(e.target.value)}
+                className="date-input"
               />
             </div>
 
-            <button type="submit" disabled={loading} className="submit-btn">
-              {loading ? "Menambah..." : "Tambah Pengeluaran"}
-            </button>
-          </form>
-        </div>
+            <form onSubmit={handleAddExpense} className="expense-form">
+              {/* Amount */}
+              <div className="form-group">
+                <label>💰 Jumlah Pengeluaran (Rp)</label>
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={expenseAmount}
+                  onChange={(e) => setExpenseAmount(e.target.value)}
+                  min="0"
+                  disabled={loading}
+                  required
+                />
+              </div>
 
-        {/* Summary Section */}
-        <div className="section summary-section">
-          <div className="month-selector">
-            <button
-              onClick={() =>
-                setFilterMonth(
-                  new Date(filterMonth.getFullYear(), filterMonth.getMonth() - 1)
-                )
-              }
-            >
-              ← Bulan Lalu
-            </button>
-            <h3>{currentMonth}</h3>
-            <button
-              onClick={() =>
-                setFilterMonth(
-                  new Date(filterMonth.getFullYear(), filterMonth.getMonth() + 1)
-                )
-              }
-            >
-              Bulan Depan →
-            </button>
+              {/* Category */}
+              <div className="form-group">
+                <label>📁 Kategori</label>
+                <select
+                  value={expenseCategory}
+                  onChange={(e) => setExpenseCategory(e.target.value)}
+                  disabled={loading}
+                  required
+                >
+                  {Object.entries(categories).map(([key, { label }]) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Description */}
+              <div className="form-group">
+                <label>📝 Keterangan</label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Makan di restoran..."
+                  value={expenseDescription}
+                  onChange={(e) => setExpenseDescription(e.target.value)}
+                  disabled={loading}
+                  required
+                />
+              </div>
+
+              <button type="submit" disabled={loading} className="submit-btn">
+                {loading ? "Menambah..." : "Tambah Pengeluaran"}
+              </button>
+            </form>
           </div>
 
-          <div className="total-box">
-            <p className="total-label">Total Pengeluaran Bulan Ini</p>
-            <h2 className="total-amount">
-              Rp {totalExpenses.toLocaleString("id-ID")}
-            </h2>
-            <p className="total-subtitle">Dari {filteredExpenses.length} transaksi</p>
-          </div>
-        </div>
+          {/* Filter Section */}
+          <div className="section filter-section">
+            <h2>🔍 Filter</h2>
 
-        {/* Expenses List Section */}
-        <div className="section list-section">
-          <h2>📝 Riwayat Pengeluaran</h2>
+            <div className="filter-controls">
+              {/* Category Filter */}
+              <div className="filter-group">
+                <label>Kategori</label>
+                <select
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="semua">Semua Kategori</option>
+                  {Object.entries(categories).map(([key, { label }]) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          {filteredExpenses.length === 0 ? (
-            <p className="empty-state">
-              Tidak ada pengeluaran bulan {currentMonth}. Mantap! 🎉
-            </p>
-          ) : (
-            <div className="expenses-list">
-              {filteredExpenses.map((expense) => {
-                const expenseDateDisplay = expense.date?.toDate 
-                  ? expense.date.toDate().toLocaleDateString("id-ID")
-                  : new Date(expense.date).toLocaleDateString("id-ID");
-
-                return (
-                  <div key={expense.id} className="expense-item">
-                    <div className="expense-left">
-                      <div className="category-icon">
-                        {categoryEmoji[expense.category] || "💰"}
-                      </div>
-                      <div className="expense-details">
-                        <p className="expense-description">
-                          {expense.description}
-                        </p>
-                        <p className="expense-meta">
-                          <span className="category-badge">
-                            {categoryLabel[expense.category]}
-                          </span>
-                          <span className="user-badge">
-                            {expense.userRole === "cowo" ? "👨" : "👩"}{" "}
-                            {expense.userName}
-                          </span>
-                          <span className="expense-date-badge">
-                            📅 {expenseDateDisplay}
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="expense-right">
-                      <p className="expense-amount">
-                        -Rp {expense.amount.toLocaleString("id-ID")}
-                      </p>
-                      <button
-                        onClick={() => handleDeleteExpense(expense.id)}
-                        className="delete-btn"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+              {/* Search */}
+              <div className="filter-group">
+                <label>Cari Keterangan</label>
+                <input
+                  type="text"
+                  placeholder="Cari..."
+                  value={searchDescription}
+                  onChange={(e) => setSearchDescription(e.target.value)}
+                  className="filter-input"
+                />
+              </div>
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* Category Breakdown */}
-        <div className="section breakdown-section">
-          <h2>📊 Breakdown Kategori</h2>
-          <div className="category-breakdown">
-            {Object.keys(categoryEmoji).map((cat) => {
-              const catTotal = filteredExpenses
-                .filter((e) => e.category === cat)
-                .reduce((sum, e) => sum + e.amount, 0);
+          {/* Expenses List */}
+          <div className="section expenses-list-section">
+            <h2>📋 Riwayat Pengeluaran ({filteredExpenses.length})</h2>
 
-              if (catTotal === 0) return null;
+            {filteredExpenses.length === 0 ? (
+              <p className="empty-state">
+                {expenses.length === 0
+                  ? "Belum ada pengeluaran. Mulai catat! 💸"
+                  : "Tidak ada pengeluaran yang sesuai filter."}
+              </p>
+            ) : (
+              <div className="expenses-list">
+                {filteredExpenses.map((expense) => {
+                  const expenseDateDisplay = expense.date?.toDate
+                    ? expense.date.toDate().toLocaleDateString("id-ID")
+                    : new Date(expense.date).toLocaleDateString("id-ID");
 
-              const percentage = (catTotal / totalExpenses) * 100;
+                  const categoryInfo = categories[expense.category];
 
-              return (
-                <div key={cat} className="category-item">
-                  <div className="category-info">
-                    <span className="cat-icon">{categoryEmoji[cat]}</span>
-                    <span className="cat-name">{categoryLabel[cat]}</span>
-                  </div>
-                  <div className="category-stats">
-                    <div className="progress-bar">
-                      <div
-                        className="progress-fill"
-                        style={{ width: `${percentage}%` }}
-                      ></div>
+                  return (
+                    <div
+                      key={expense.id}
+                      className="expense-item"
+                      style={{ borderLeftColor: categoryInfo?.color || "#E74C3C" }}
+                    >
+                      <div className="expense-info">
+                        <div className="expense-category">
+                          {categoryInfo?.label || expense.category}
+                        </div>
+                        <p className="expense-description">{expense.description}</p>
+                        <div className="expense-meta">
+                          <span className="expense-date">{expenseDateDisplay}</span>
+                          <span className="expense-user">
+                            {expense.userRole === "cowo" ? "👨" : "👩"} {expense.userName}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="expense-amount">
+                        <p className="amount">
+                          -Rp {expense.amount.toLocaleString("id-ID")}
+                        </p>
+                        <button
+                          onClick={() => handleDeleteExpense(expense.id)}
+                          className="delete-btn"
+                          title="Hapus"
+                        >
+                          🗑️
+                        </button>
+                      </div>
                     </div>
-                    <span className="cat-amount">
-                      Rp {catTotal.toLocaleString("id-ID")} ({percentage.toFixed(0)}%)
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>

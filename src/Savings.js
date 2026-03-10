@@ -4,95 +4,151 @@ import {
   query,
   where,
   onSnapshot,
+  addDoc,
+  deleteDoc,
+  doc,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import "./Savings.css";
 
 export default function Savings({ user, onNavigate }) {
   const [savings, setSavings] = useState([]);
-  const [filterMonth, setFilterMonth] = useState(new Date());
-  const [targetAmount, setTargetAmount] = useState(0);
-  const [showTargetInput, setShowTargetInput] = useState(false);
+  const [expenses, setExpenses] = useState([]);
+  const [targetSavings, setTargetSavings] = useState(0);
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
 
-  // Fetch savings data real-time
+  // Fetch data
   useEffect(() => {
     const groupId = user.groupId || "default";
 
+    // Fetch Savings
     const savingsQuery = query(
       collection(db, "savings"),
       where("groupId", "==", groupId)
     );
-
-    const unsubscribe = onSnapshot(savingsQuery, (snapshot) => {
+    const unsubscribeSavings = onSnapshot(savingsQuery, (snapshot) => {
       const data = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
-      setSavings(data.sort((a, b) => b.date - a.date));
+      setSavings(data);
     });
 
-    return unsubscribe;
+    // Fetch Expenses
+    const expensesQuery = query(
+      collection(db, "expenses"),
+      where("groupId", "==", groupId)
+    );
+    const unsubscribeExpenses = onSnapshot(expensesQuery, (snapshot) => {
+      const data = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setExpenses(data);
+    });
+
+    return () => {
+      unsubscribeSavings();
+      unsubscribeExpenses();
+    };
   }, [user.groupId]);
 
-  // Calculate totals
+  // Filter regular savings (not deductions)
   const regularSavings = savings.filter(s => s.role && s.role !== "deduction");
-  const totalSavings = savings.reduce((sum, s) => sum + (s.amount || 0), 0);
-  const cowoSavings = regularSavings
+
+  // Calculate totals
+  const totalIncome = regularSavings.reduce((sum, s) => sum + (s.amount || 0), 0);
+  const totalDeductions = savings
+    .filter(s => s.role === "deduction")
+    .reduce((sum, s) => sum + Math.abs(s.amount || 0), 0);
+  const netTotal = totalIncome - totalDeductions;
+
+  const cowoIncome = regularSavings
     .filter((s) => s.role === "cowo")
     .reduce((sum, s) => sum + (s.amount || 0), 0);
-  const ceweSavings = regularSavings
+
+  const ceweIncome = regularSavings
     .filter((s) => s.role === "cewe")
     .reduce((sum, s) => sum + (s.amount || 0), 0);
 
-  // Filter by month
+  // Monthly data
   const monthStart = new Date(
-    filterMonth.getFullYear(),
-    filterMonth.getMonth(),
+    selectedMonth.getFullYear(),
+    selectedMonth.getMonth(),
     1
   );
   const monthEnd = new Date(
-    filterMonth.getFullYear(),
-    filterMonth.getMonth() + 1,
+    selectedMonth.getFullYear(),
+    selectedMonth.getMonth() + 1,
     0
   );
 
-  const monthlyRegularSavings = regularSavings.filter((s) => {
-    const sDate = s.date?.toDate ? s.date.toDate() : new Date(s.date);
-    return sDate >= monthStart && sDate <= monthEnd;
-  });
+  const monthlyAdded = regularSavings
+    .filter((s) => {
+      const sDate = s.date?.toDate ? s.date.toDate() : new Date(s.date);
+      return sDate >= monthStart && sDate <= monthEnd;
+    })
+    .reduce((sum, s) => sum + (s.amount || 0), 0);
 
-  const monthlyDeductions = savings
+  const monthlyDeducted = savings
     .filter((s) => s.role === "deduction")
     .filter((s) => {
       const sDate = s.date?.toDate ? s.date.toDate() : new Date(s.date);
       return sDate >= monthStart && sDate <= monthEnd;
-    });
+    })
+    .reduce((sum, s) => sum + Math.abs(s.amount || 0), 0);
 
-  const monthlyAddedAmount = monthlyRegularSavings.reduce((sum, s) => sum + (s.amount || 0), 0);
-  const monthlyDeductedAmount = monthlyDeductions.reduce((sum, s) => sum + Math.abs(s.amount || 0), 0);
-  const monthlyNetAmount = monthlyAddedAmount - monthlyDeductedAmount;
+  // Category breakdown
+  const categoryEmoji = {
+    makan: "🍕",
+    transport: "🚗",
+    hiburan: "🎬",
+    belanja: "🛍️",
+    kesehatan: "💊",
+    utilitas: "💡",
+    lainnya: "💰",
+  };
 
-  // Target calculation
-  const targetProgress = targetAmount > 0 ? (totalSavings / targetAmount) * 100 : 0;
-  const targetRemaining = Math.max(0, targetAmount - totalSavings);
+  const categoryLabel = {
+    makan: "Makan & Minuman",
+    transport: "Transport",
+    hiburan: "Hiburan",
+    belanja: "Belanja",
+    kesehatan: "Kesehatan",
+    utilitas: "Utilitas",
+    lainnya: "Lainnya",
+  };
 
-  // Contribution ratio
-  const totalContribution = cowoSavings + ceweSavings;
-  const cowoContributionPercent = totalContribution > 0 ? ((cowoSavings / totalContribution) * 100).toFixed(1) : 0;
-  const ceweContributionPercent = totalContribution > 0 ? ((ceweSavings / totalContribution) * 100).toFixed(1) : 0;
+  const categoryBreakdown = Object.keys(categoryEmoji).map((cat) => {
+    const catTotal = expenses
+      .filter((e) => e.category === cat)
+      .reduce((sum, e) => sum + e.amount, 0);
+    return {
+      name: categoryLabel[cat],
+      value: catTotal,
+      icon: categoryEmoji[cat],
+    };
+  });
 
-  const currentMonth = filterMonth.toLocaleDateString("id-ID", {
+  // Statistics
+  const avgMonthly = (totalIncome / 12).toLocaleString("id-ID", { maximumFractionDigits: 0 });
+  const savingRate = totalIncome > 0 ? ((netTotal / totalIncome) * 100).toFixed(1) : 0;
+  const targetProgress = targetSavings > 0 ? ((netTotal / targetSavings) * 100).toFixed(1) : 0;
+
+  const handleDeleteSaving = async (id) => {
+    if (window.confirm("Hapus transaksi ini?")) {
+      try {
+        await deleteDoc(doc(db, "savings", id));
+      } catch (error) {
+        console.error("Error deleting saving:", error);
+      }
+    }
+  };
+
+  const currentMonth = selectedMonth.toLocaleDateString("id-ID", {
     month: "long",
     year: "numeric",
   });
-
-  const handleSetTarget = () => {
-    const input = prompt("Berapa target tabungan? (Rp)", targetAmount.toString());
-    if (input && !isNaN(input) && parseInt(input) > 0) {
-      setTargetAmount(parseInt(input));
-      setShowTargetInput(false);
-    }
-  };
 
   return (
     <>
@@ -128,338 +184,227 @@ export default function Savings({ user, onNavigate }) {
       </button>
 
       <div className="savings-page">
-        {/* Header */}
-        <div className="savings-header">
-          <h1>💰 Detail Tabungan Berdua</h1>
-          <p>Kelola dan pantau tabungan untuk masa depan bersama</p>
-        </div>
-
-        {/* Total Summary Cards */}
-        <div className="summary-section">
-          <div className="summary-grid">
-            {/* Total Tabungan */}
-            <div className="summary-card total-card">
-              <div className="card-header">
-                <span className="card-icon">💑</span>
-                <h3>Total Tabungan</h3>
-              </div>
-              <div className="card-content">
-                <h2 className="amount">Rp {totalSavings.toLocaleString("id-ID")}</h2>
-                <p className="subtitle">Tabungan bersama untuk masa depan</p>
-              </div>
-            </div>
-
-            {/* Tabungan Cowo */}
-            <div className="summary-card cowo-card">
-              <div className="card-header">
-                <span className="card-icon">👨</span>
-                <h3>Kontribusi Cowo</h3>
-              </div>
-              <div className="card-content">
-                <h2 className="amount">Rp {cowoSavings.toLocaleString("id-ID")}</h2>
-                <p className="subtitle">{cowoContributionPercent}% dari total</p>
-              </div>
-            </div>
-
-            {/* Tabungan Cewe */}
-            <div className="summary-card cewe-card">
-              <div className="card-header">
-                <span className="card-icon">👩</span>
-                <h3>Kontribusi Cewe</h3>
-              </div>
-              <div className="card-content">
-                <h2 className="amount">Rp {ceweSavings.toLocaleString("id-ID")}</h2>
-                <p className="subtitle">{ceweContributionPercent}% dari total</p>
-              </div>
-            </div>
-
-            {/* Monthly Net */}
-            <div className="summary-card net-card">
-              <div className="card-header">
-                <span className="card-icon">📊</span>
-                <h3>Net Bulan Ini</h3>
-              </div>
-              <div className="card-content">
-                <h2 className={`amount ${monthlyNetAmount >= 0 ? "positive" : "negative"}`}>
-                  {monthlyNetAmount >= 0 ? "+" : "-"}Rp {Math.abs(monthlyNetAmount).toLocaleString("id-ID")}
-                </h2>
-                <p className="subtitle">{monthlyAddedAmount > 0 ? `+Rp ${monthlyAddedAmount.toLocaleString("id-ID")}` : "Rp 0"} ditambah</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Target Savings Section */}
-        <div className="section target-section">
-          <div className="section-header">
-            <h2>🎯 Target Tabungan</h2>
-            <button onClick={handleSetTarget} className="set-target-btn">
-              {targetAmount > 0 ? "Ubah Target" : "Atur Target"}
-            </button>
+        <div className="container">
+          {/* Header */}
+          <div className="savings-header">
+            <h1>💰 Detail Tabungan</h1>
+            <p>Tracking tabungan bersama lebih mudah</p>
           </div>
 
-          {targetAmount > 0 ? (
-            <div className="target-content">
-              <div className="target-info">
-                <div className="target-stats">
-                  <div className="stat-item">
-                    <span className="stat-label">Target</span>
-                    <span className="stat-value">Rp {targetAmount.toLocaleString("id-ID")}</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">Sudah Tercapai</span>
-                    <span className="stat-value">Rp {totalSavings.toLocaleString("id-ID")}</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">Sisa</span>
-                    <span className="stat-value">Rp {targetRemaining.toLocaleString("id-ID")}</span>
-                  </div>
-                </div>
-
-                <div className="progress-container">
-                  <div className="progress-bar">
-                    <div 
-                      className="progress-fill" 
-                      style={{ width: `${Math.min(targetProgress, 100)}%` }}
-                    ></div>
-                  </div>
-                  <div className="progress-label">
-                    <span>{targetProgress.toFixed(1)}% Tercapai</span>
-                    <span>{100 - Math.min(targetProgress, 100)}% Lagi</span>
-                  </div>
-                </div>
-
-                {targetRemaining > 0 ? (
-                  <p className="target-message">
-                    ✨ Tinggal Rp {targetRemaining.toLocaleString("id-ID")} lagi untuk mencapai target! 💪
-                  </p>
-                ) : (
-                  <p className="target-message success">
-                    🎉 Target sudah tercapai! Selamat! 🎊
-                  </p>
-                )}
+          {/* Summary Cards */}
+          <div className="summary-cards">
+            <div className="summary-card total">
+              <div className="card-header">
+                <p className="card-label">💑 Total Tabungan</p>
+                <p className="card-emoji">💕</p>
               </div>
-            </div>
-          ) : (
-            <div className="empty-target">
-              <p>📌 Belum ada target tabungan</p>
-              <p className="subtitle">Atur target untuk memotivasi diri</p>
-            </div>
-          )}
-        </div>
-
-        {/* Contribution Breakdown */}
-        <div className="section breakdown-section">
-          <h2>📈 Breakdown Kontribusi</h2>
-          <div className="breakdown-content">
-            <div className="breakdown-visual">
-              <div className="contribution-chart">
-                {totalContribution > 0 ? (
-                  <>
-                    <div 
-                      className="contribution-segment cowo-segment"
-                      style={{ width: `${cowoContributionPercent}%` }}
-                      title={`Cowo: ${cowoContributionPercent}%`}
-                    ></div>
-                    <div 
-                      className="contribution-segment cewe-segment"
-                      style={{ width: `${ceweContributionPercent}%` }}
-                      title={`Cewe: ${ceweContributionPercent}%`}
-                    ></div>
-                  </>
-                ) : (
-                  <p className="empty-state">Belum ada kontribusi</p>
-                )}
-              </div>
+              <h2>Rp {netTotal.toLocaleString("id-ID")}</h2>
+              <p className="card-detail">{regularSavings.length} transaksi</p>
             </div>
 
-            <div className="breakdown-stats">
-              <div className="breakdown-item cowo">
-                <div className="breakdown-header">
-                  <span className="icon">👨</span>
-                  <span className="label">Kontribusi Cowo</span>
-                </div>
-                <div className="breakdown-body">
-                  <p className="amount">Rp {cowoSavings.toLocaleString("id-ID")}</p>
-                  <div className="percentage-bar">
-                    <div className="percentage-fill cowo" style={{ width: `${cowoContributionPercent}%` }}></div>
-                  </div>
-                  <p className="percentage">{cowoContributionPercent}%</p>
-                </div>
+            <div className="summary-card cowo">
+              <div className="card-header">
+                <p className="card-label">👨 Cowo Kasih</p>
+                <p className="card-emoji">👨</p>
               </div>
+              <h3>Rp {cowoIncome.toLocaleString("id-ID")}</h3>
+            </div>
 
-              <div className="breakdown-item cewe">
-                <div className="breakdown-header">
-                  <span className="icon">👩</span>
-                  <span className="label">Kontribusi Cewe</span>
-                </div>
-                <div className="breakdown-body">
-                  <p className="amount">Rp {ceweSavings.toLocaleString("id-ID")}</p>
-                  <div className="percentage-bar">
-                    <div className="percentage-fill cewe" style={{ width: `${ceweContributionPercent}%` }}></div>
-                  </div>
-                  <p className="percentage">{ceweContributionPercent}%</p>
-                </div>
+            <div className="summary-card cewe">
+              <div className="card-header">
+                <p className="card-label">👩 Cewe Kasih</p>
+                <p className="card-emoji">👩</p>
               </div>
+              <h3>Rp {ceweIncome.toLocaleString("id-ID")}</h3>
+            </div>
+
+            <div className="summary-card deduction">
+              <div className="card-header">
+                <p className="card-label">📉 Total Deduction</p>
+                <p className="card-emoji">💸</p>
+              </div>
+              <h3>-Rp {totalDeductions.toLocaleString("id-ID")}</h3>
             </div>
           </div>
-        </div>
 
-        {/* Monthly Breakdown */}
-        <div className="section monthly-section">
-          <div className="section-header">
-            <h2>📅 Ringkasan Bulanan</h2>
-            <div className="month-selector">
+          {/* Target Section */}
+          <div className="section target-section">
+            <div className="target-header">
+              <h2>🎯 Target Tabungan</h2>
+              <p className="target-help">Set target tabungan kalian!</p>
+            </div>
+
+            <div className="target-form">
+              <input
+                type="number"
+                placeholder="Target (Rp)"
+                value={targetSavings}
+                onChange={(e) => setTargetSavings(parseFloat(e.target.value) || 0)}
+                className="target-input"
+              />
               <button
-                onClick={() =>
-                  setFilterMonth(
-                    new Date(filterMonth.getFullYear(), filterMonth.getMonth() - 1)
-                  )
-                }
-                className="month-nav-btn"
+                onClick={() => {
+                  if (targetSavings > 0) {
+                    alert(`Target tabungan set ke: Rp ${targetSavings.toLocaleString("id-ID")}`);
+                  }
+                }}
+                className="target-btn"
               >
-                ← Bulan Lalu
-              </button>
-              <span className="current-month">{currentMonth}</span>
-              <button
-                onClick={() =>
-                  setFilterMonth(
-                    new Date(filterMonth.getFullYear(), filterMonth.getMonth() + 1)
-                  )
-                }
-                className="month-nav-btn"
-              >
-                Bulan Depan →
+                Set Target
               </button>
             </div>
+
+            {targetSavings > 0 && (
+              <div className="target-progress">
+                <div className="progress-info">
+                  <span>Progress: {targetProgress}%</span>
+                  <span>Rp {netTotal.toLocaleString("id-ID")} / Rp {targetSavings.toLocaleString("id-ID")}</span>
+                </div>
+                <div className="progress-bar">
+                  <div
+                    className="progress-fill"
+                    style={{ width: `${Math.min(targetProgress, 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="monthly-stats">
-            <div className="monthly-card added">
-              <div className="monthly-icon">📥</div>
-              <div className="monthly-content">
-                <p className="monthly-label">Ditambahkan</p>
-                <p className="monthly-amount">+Rp {monthlyAddedAmount.toLocaleString("id-ID")}</p>
-                <p className="monthly-detail">{monthlyRegularSavings.length} transaksi</p>
+          {/* Monthly Breakdown */}
+          <div className="section monthly-section">
+            <div className="month-header">
+              <h2>📅 Ringkasan Bulan</h2>
+              <div className="month-nav">
+                <button
+                  onClick={() =>
+                    setSelectedMonth(
+                      new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() - 1)
+                    )
+                  }
+                  className="month-btn"
+                >
+                  ← Lalu
+                </button>
+                <span className="current-month">{currentMonth}</span>
+                <button
+                  onClick={() =>
+                    setSelectedMonth(
+                      new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1)
+                    )
+                  }
+                  className="month-btn"
+                >
+                  Depan →
+                </button>
               </div>
             </div>
 
-            <div className="monthly-card deducted">
-              <div className="monthly-icon">📤</div>
-              <div className="monthly-content">
-                <p className="monthly-label">Dikurangi</p>
-                <p className="monthly-amount">-Rp {monthlyDeductedAmount.toLocaleString("id-ID")}</p>
-                <p className="monthly-detail">{monthlyDeductions.length} pengeluaran</p>
+            <div className="monthly-cards">
+              <div className="monthly-card added">
+                <p>Ditambah</p>
+                <h3>Rp {monthlyAdded.toLocaleString("id-ID")}</h3>
               </div>
-            </div>
-
-            <div className={`monthly-card net ${monthlyNetAmount >= 0 ? "positive" : "negative"}`}>
-              <div className="monthly-icon">💰</div>
-              <div className="monthly-content">
-                <p className="monthly-label">Net Bulan Ini</p>
-                <p className="monthly-amount">
-                  {monthlyNetAmount >= 0 ? "+" : "-"}Rp {Math.abs(monthlyNetAmount).toLocaleString("id-ID")}
-                </p>
-                <p className="monthly-detail">{monthlyNetAmount >= 0 ? "Bertambah" : "Berkurang"}</p>
+              <div className="monthly-card deducted">
+                <p>Dikurang</p>
+                <h3>-Rp {monthlyDeducted.toLocaleString("id-ID")}</h3>
+              </div>
+              <div className="monthly-card net">
+                <p>Net</p>
+                <h3>Rp {(monthlyAdded - monthlyDeducted).toLocaleString("id-ID")}</h3>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Savings History */}
-        <div className="section history-section">
-          <h2>📝 Riwayat Tabungan</h2>
-          {regularSavings.length === 0 ? (
-            <p className="empty-state">
-              Belum ada riwayat tabungan. Mulai simpan uang berdua! 💕
-            </p>
-          ) : (
-            <div className="history-list">
-              {regularSavings.slice(0, 20).map((saving) => {
-                const savingDate = saving.date?.toDate 
-                  ? saving.date.toDate()
-                  : new Date(saving.date);
-                const savingDateDisplay = savingDate.toLocaleDateString("id-ID", {
-                  weekday: "short",
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric"
-                });
-                const timeDisplay = savingDate.toLocaleTimeString("id-ID", {
-                  hour: "2-digit",
-                  minute: "2-digit"
-                });
+          {/* Statistics */}
+          <div className="section stats-section">
+            <h2>📊 Statistik</h2>
+            <div className="stats-grid">
+              <div className="stat-card">
+                <p className="stat-label">Rata-rata Bulanan</p>
+                <p className="stat-value">Rp {avgMonthly}</p>
+              </div>
+              <div className="stat-card">
+                <p className="stat-label">Saving Rate</p>
+                <p className="stat-value">{savingRate}%</p>
+              </div>
+              <div className="stat-card">
+                <p className="stat-label">Total Deduction</p>
+                <p className="stat-value">Rp {totalDeductions.toLocaleString("id-ID")}</p>
+              </div>
+              <div className="stat-card">
+                <p className="stat-label">Transaksi</p>
+                <p className="stat-value">{regularSavings.length}</p>
+              </div>
+            </div>
+          </div>
 
+          {/* Category Breakdown */}
+          <div className="section category-section">
+            <h2>📁 Breakdown Kategori Pengeluaran</h2>
+            <div className="category-list">
+              {categoryBreakdown.filter(c => c.value > 0).map((cat, idx) => {
+                const percentage = expenses.length > 0 ? ((cat.value / expenses.reduce((sum, e) => sum + e.amount, 0)) * 100).toFixed(1) : 0;
                 return (
-                  <div key={saving.id} className="history-item">
-                    <div className="history-left">
-                      <div className="history-avatar">
-                        {saving.role === "cowo" ? "👨" : "👩"}
-                      </div>
-                      <div className="history-details">
-                        <p className="history-name">{saving.userName}</p>
-                        <p className="history-role">
-                          {saving.role === "cowo" ? "Kontribusi Cowok" : "Kontribusi Cewe"}
-                        </p>
-                        <p className="history-date">
-                          📅 {savingDateDisplay} • {timeDisplay}
-                        </p>
-                      </div>
+                  <div key={idx} className="category-item">
+                    <div className="cat-info">
+                      <span className="cat-icon">{cat.icon}</span>
+                      <span className="cat-name">{cat.name}</span>
                     </div>
-                    <div className="history-right">
-                      <p className="history-amount">
-                        +Rp {saving.amount.toLocaleString("id-ID")}
-                      </p>
+                    <div className="cat-stats">
+                      <p className="cat-amount">Rp {cat.value.toLocaleString("id-ID")}</p>
+                      <p className="cat-percentage">{percentage}%</p>
                     </div>
                   </div>
                 );
               })}
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* Statistics Section */}
-        <div className="section statistics-section">
-          <h2>📊 Statistik Tabungan</h2>
-          <div className="statistics-grid">
-            <div className="stat-card">
-              <div className="stat-icon">🔢</div>
-              <div className="stat-info">
-                <p className="stat-title">Total Transaksi</p>
-                <p className="stat-value">{regularSavings.length}</p>
-              </div>
-            </div>
+          {/* Recent History */}
+          <div className="section history-section">
+            <h2>📝 Riwayat Terbaru</h2>
+            {savings.length === 0 ? (
+              <p className="empty-state">Belum ada riwayat tabungan</p>
+            ) : (
+              <div className="history-list">
+                {savings.slice(0, 15).map((saving) => {
+                  const savingDate = saving.date?.toDate
+                    ? saving.date.toDate().toLocaleDateString("id-ID")
+                    : new Date(saving.date).toLocaleDateString("id-ID");
 
-            <div className="stat-card">
-              <div className="stat-icon">💹</div>
-              <div className="stat-info">
-                <p className="stat-title">Rata-rata per Transaksi</p>
-                <p className="stat-value">
-                  Rp {regularSavings.length > 0 
-                    ? (totalSavings / regularSavings.length).toLocaleString("id-ID", {
-                        maximumFractionDigits: 0
-                      })
-                    : 0
-                  }
-                </p>
-              </div>
-            </div>
+                  const isDeduction = saving.role === "deduction";
 
-            <div className="stat-card">
-              <div className="stat-icon">👨</div>
-              <div className="stat-info">
-                <p className="stat-title">Kontribusi Cowo</p>
-                <p className="stat-value">{cowoContributionPercent}%</p>
+                  return (
+                    <div
+                      key={saving.id}
+                      className="history-item"
+                      style={{
+                        borderLeftColor: isDeduction ? "#E74C3C" : "#27AE60",
+                        background: isDeduction ? "#FFE8E8" : "#E8F8F5",
+                      }}
+                    >
+                      <div className="history-info">
+                        <p className="history-type">
+                          {isDeduction ? "💸 Deduction" : `${saving.role === "cowo" ? "👨" : "👩"} ${saving.userName}`}
+                        </p>
+                        <p className="history-date">{savingDate}</p>
+                      </div>
+                      <div className="history-amount">
+                        <p style={{ color: isDeduction ? "#E74C3C" : "#27AE60" }}>
+                          {isDeduction ? "-" : "+"}Rp {Math.abs(saving.amount).toLocaleString("id-ID")}
+                        </p>
+                        <button
+                          onClick={() => handleDeleteSaving(saving.id)}
+                          className="delete-btn"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            </div>
-
-            <div className="stat-card">
-              <div className="stat-icon">👩</div>
-              <div className="stat-info">
-                <p className="stat-title">Kontribusi Cewe</p>
-                <p className="stat-value">{ceweContributionPercent}%</p>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
