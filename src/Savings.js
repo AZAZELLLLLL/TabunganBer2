@@ -4,7 +4,6 @@ import {
   query,
   where,
   onSnapshot,
-  addDoc,
   deleteDoc,
   doc,
 } from "firebase/firestore";

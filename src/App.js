@@ -16,7 +16,6 @@ function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState("menu");
-  const [prevPage, setPrevPage] = useState(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   // Handle splash screen
@@ -51,7 +50,6 @@ function App() {
     if (page === currentPage) return;
 
     setIsTransitioning(true);
-    setPrevPage(currentPage); // Simpan halaman sebelumnya
 
     setTimeout(() => {
       setCurrentPage(page);
