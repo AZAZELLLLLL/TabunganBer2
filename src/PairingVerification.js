@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { doc, getDoc, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { doc, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "./firebase";
 import { QRCodeCanvas } from "qrcode.react";
 import "./PairingVerification.css";
@@ -49,6 +49,7 @@ export default function PairingVerification({ user, onBack }) {
    */
   useEffect(() => {
     loadGroupData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user.groupId]);
 
   const loadGroupData = async () => {
