@@ -8,7 +8,10 @@
   font-family: "Plus Jakarta Sans", sans-serif;
 }
 
-/* Header */
+/* ============================================
+   HEADER SECTION
+   ============================================ */
+
 .menu-header {
   background: linear-gradient(135deg, #D4869B, #8B6F9E);
   padding: 30px 20px;
@@ -63,7 +66,36 @@
   opacity: 0.9;
 }
 
-/* Main Content */
+/* ✏️ EDIT PROFILE BUTTON - ADDED FOR EDIT FEATURE */
+.btn-edit-profile {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 18px;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  margin-left: 12px;
+}
+
+.btn-edit-profile:hover {
+  background: rgba(255, 255, 255, 0.35);
+  transform: scale(1.1);
+}
+
+.btn-edit-profile:active {
+  transform: scale(0.95);
+}
+
+/* ============================================
+   MAIN CONTENT
+   ============================================ */
+
 .menu-content {
   flex: 1;
   padding: 40px 20px;
@@ -77,7 +109,10 @@
   gap: 25px;
 }
 
-/* Menu Cards */
+/* ============================================
+   MENU CARDS
+   ============================================ */
+
 .menu-card {
   display: flex;
   align-items: center;
@@ -88,7 +123,7 @@
   border-radius: 20px;
   border-left: 6px solid;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 10px 30px rgba(212, 134, 155, 0.1);
   text-align: left;
 }
@@ -99,10 +134,10 @@
 }
 
 .menu-card:active {
-  transform: translateY(-5px);
+  transform: translateY(-5px) translateX(2px);
 }
 
-/* Color variants */
+/* Dashboard Card */
 .menu-card-dashboard {
   border-left-color: #D4869B;
 }
@@ -111,6 +146,7 @@
   background: linear-gradient(135deg, rgba(212, 134, 155, 0.05), rgba(255, 248, 240, 0.5));
 }
 
+/* Savings Card */
 .menu-card-savings {
   border-left-color: #FFB6C1;
 }
@@ -119,6 +155,7 @@
   background: linear-gradient(135deg, rgba(255, 182, 193, 0.05), rgba(255, 248, 240, 0.5));
 }
 
+/* Expenses Card */
 .menu-card-expenses {
   border-left-color: #FF6B6B;
 }
@@ -127,6 +164,7 @@
   background: linear-gradient(135deg, rgba(255, 107, 107, 0.05), rgba(255, 248, 240, 0.5));
 }
 
+/* Income Card */
 .menu-card-income {
   border-left-color: #4ECDC4;
 }
@@ -135,6 +173,7 @@
   background: linear-gradient(135deg, rgba(78, 205, 196, 0.05), rgba(255, 248, 240, 0.5));
 }
 
+/* Stats Card */
 .menu-card-stats {
   border-left-color: #D4AF6A;
 }
@@ -143,12 +182,25 @@
   background: linear-gradient(135deg, rgba(212, 175, 106, 0.05), rgba(255, 248, 240, 0.5));
 }
 
+/* QR Generator / Pairing Card (Owner Only) */
+.menu-card-pairing {
+  border-left-color: #8B6F9E;
+}
+
+.menu-card-pairing:hover {
+  border-left-color: #5A4A5C;
+  background: linear-gradient(135deg, #E8D9F5 0%, #F0E6FF 100%);
+  box-shadow: 0 8px 24px rgba(139, 111, 158, 0.25);
+}
+
+/* Card Elements */
 .menu-card-emoji {
   font-size: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
   min-width: 60px;
+  flex-shrink: 0;
 }
 
 .menu-card-text {
@@ -160,12 +212,14 @@
   color: #5A4A5C;
   font-size: 18px;
   font-weight: 700;
+  letter-spacing: -0.3px;
 }
 
 .menu-card-text p {
   margin: 0;
   color: #8B6F9E;
   font-size: 13px;
+  font-weight: 500;
 }
 
 .menu-card-arrow {
@@ -175,6 +229,7 @@
   opacity: 0;
   transform: translateX(-10px);
   transition: all 0.3s ease;
+  flex-shrink: 0;
 }
 
 .menu-card:hover .menu-card-arrow {
@@ -182,7 +237,10 @@
   transform: translateX(0);
 }
 
-/* Footer */
+/* ============================================
+   FOOTER
+   ============================================ */
+
 .menu-footer {
   padding: 20px;
   text-align: center;
@@ -199,7 +257,8 @@
   cursor: pointer;
   font-weight: 600;
   font-size: 14px;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.2);
 }
 
 .menu-logout-btn:hover {
@@ -207,7 +266,14 @@
   box-shadow: 0 10px 25px rgba(255, 107, 107, 0.3);
 }
 
-/* Responsive */
+.menu-logout-btn:active {
+  transform: translateY(-1px);
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
 @media (max-width: 768px) {
   .menu-header {
     padding: 20px 15px;
@@ -226,6 +292,19 @@
     font-size: 12px;
   }
 
+  .menu-user {
+    width: 100%;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .btn-edit-profile {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+    margin-left: 8px;
+  }
+
   .menu-content {
     padding: 30px 15px;
   }
@@ -236,6 +315,7 @@
 
   .menu-card {
     padding: 20px;
+    gap: 15px;
   }
 
   .menu-card-emoji {
@@ -250,6 +330,10 @@
   .menu-card-text p {
     font-size: 12px;
   }
+
+  .menu-footer {
+    padding: 15px;
+  }
 }
 
 @media (max-width: 500px) {
@@ -257,12 +341,21 @@
     padding: 15px 12px;
   }
 
+  .menu-header-content {
+    gap: 12px;
+  }
+
   .menu-logo h1 {
     font-size: 20px;
   }
 
+  .menu-logo p {
+    font-size: 11px;
+  }
+
   .menu-user {
     gap: 8px;
+    padding: 0;
   }
 
   .menu-user img {
@@ -272,6 +365,17 @@
 
   .menu-user p {
     font-size: 13px;
+  }
+
+  .menu-user small {
+    font-size: 11px;
+  }
+
+  .btn-edit-profile {
+    width: 30px;
+    height: 30px;
+    font-size: 14px;
+    margin-left: 6px;
   }
 
   .menu-content {
@@ -289,9 +393,46 @@
 
   .menu-card-emoji {
     font-size: 32px;
+    min-width: 45px;
   }
 
   .menu-card-text h2 {
     font-size: 15px;
+    margin-bottom: 4px;
+  }
+
+  .menu-card-text p {
+    font-size: 11px;
+  }
+
+  .menu-logout-btn {
+    padding: 10px 24px;
+    font-size: 13px;
   }
 }
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.menu-card {
+  animation: slideInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.menu-card:nth-child(1) { animation-delay: 0.1s; }
+.menu-card:nth-child(2) { animation-delay: 0.2s; }
+.menu-card:nth-child(3) { animation-delay: 0.3s; }
+.menu-card:nth-child(4) { animation-delay: 0.4s; }
+.menu-card:nth-child(5) { animation-delay: 0.5s; }
+.menu-card:nth-child(6) { animation-delay: 0.6s; }

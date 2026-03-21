@@ -1,0 +1,537 @@
+/* QR GENERATOR PAGE */
+.qr-generator-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* HEADER */
+.qr-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: white;
+  padding: 20px;
+  border-radius: 15px;
+  margin-bottom: 30px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.btn-back {
+  background: #f0f0f0;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.btn-back:hover {
+  background: #e0e0e0;
+  transform: translateX(-3px);
+}
+
+.qr-header h1 {
+  flex: 1;
+  text-align: center;
+  margin: 0;
+  font-size: 24px;
+  color: #333;
+}
+
+/* ERROR BANNER */
+.error-banner {
+  background: #ffebee;
+  border-left: 4px solid #c62828;
+  color: #c62828;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-weight: 600;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* MAIN CONTENT */
+.qr-content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* SECTIONS */
+.qr-section {
+  background: white;
+  border-radius: 15px;
+  padding: 30px;
+  margin-bottom: 25px;
+  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.1);
+}
+
+.section-header {
+  margin-bottom: 30px;
+}
+
+.section-header h2 {
+  margin: 0 0 8px 0;
+  font-size: 22px;
+  color: #333;
+}
+
+.section-description {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+/* QR DISPLAY */
+.qr-display-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.qr-display {
+  background: #f9f9f9;
+  padding: 30px;
+  border-radius: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  border: 2px dashed #667eea;
+}
+
+.qr-display canvas {
+  background: white;
+  border-radius: 10px;
+}
+
+.qr-info {
+  text-align: center;
+  width: 100%;
+}
+
+.qr-info p {
+  margin: 8px 0;
+  font-size: 13px;
+}
+
+.group-id {
+  background: #f0f0f0;
+  padding: 12px;
+  border-radius: 8px;
+  font-family: monospace;
+  font-weight: 600;
+  color: #333;
+  word-break: break-all;
+}
+
+.qr-hint {
+  color: #999;
+  font-style: italic;
+  margin-top: 10px;
+}
+
+.btn-toggle-qr {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 14px 28px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  min-width: 200px;
+}
+
+.btn-toggle-qr:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+/* NO GROUP STATE */
+.no-group {
+  background: #f5f5f5;
+  padding: 40px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.no-group p {
+  margin: 10px 0;
+  color: #666;
+}
+
+.no-group p:first-child {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.hint {
+  font-size: 13px;
+  color: #999;
+}
+
+/* EMPTY STATE */
+.empty-state {
+  background: #f9f9f9;
+  padding: 50px 30px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin: 0 0 15px 0;
+  display: block;
+}
+
+.empty-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 8px 0;
+}
+
+.empty-hint {
+  color: #999;
+  font-size: 13px;
+  margin: 0;
+}
+
+/* REQUESTS CONTAINER */
+.requests-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* REQUEST CARD */
+.request-card {
+  background: #f9f9f9;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.3s ease;
+}
+
+.request-card:hover {
+  border-color: #667eea;
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.15);
+}
+
+.request-card.pending {
+  border-left: 5px solid #ff9800;
+}
+
+/* REQUEST HEADER */
+.request-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.viewer-photo {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.viewer-info {
+  flex: 1;
+  min-width: 150px;
+}
+
+.viewer-name {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+  font-weight: 600;
+}
+
+.viewer-email {
+  margin: 5px 0 0 0;
+  font-size: 13px;
+  color: #666;
+}
+
+.request-time {
+  text-align: right;
+  font-size: 12px;
+  color: #999;
+}
+
+/* DEVICE INFO SECTION */
+.device-info-section {
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 15px;
+  border-left: 4px solid #667eea;
+}
+
+.device-badge {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.badge-icon {
+  font-size: 24px;
+  margin-top: 2px;
+}
+
+.device-details {
+  flex: 1;
+}
+
+.device-details p {
+  margin: 5px 0;
+}
+
+.device-type {
+  font-size: 14px;
+  color: #333;
+  margin: 0;
+  font-weight: 600;
+}
+
+.device-specs {
+  font-size: 12px;
+  color: #666;
+  margin: 3px 0 !important;
+}
+
+.device-model {
+  font-size: 12px;
+  color: #999;
+  margin: 3px 0 !important;
+  font-style: italic;
+}
+
+/* REQUEST ACTIONS */
+.request-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.btn-accept,
+.btn-reject {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  transition: all 0.3s ease;
+}
+
+.btn-accept {
+  background: #4caf50;
+  color: white;
+}
+
+.btn-accept:hover:not(:disabled) {
+  background: #45a049;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 12px rgba(76, 175, 80, 0.3);
+}
+
+.btn-reject {
+  background: #f44336;
+  color: white;
+}
+
+.btn-reject:hover:not(:disabled) {
+  background: #da190b;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 12px rgba(244, 67, 54, 0.3);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* APPROVED CONTAINER */
+.approved-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 15px;
+}
+
+/* APPROVED CARD */
+.approved-card {
+  background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+  border: 2px solid #4caf50;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.approved-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(76, 175, 80, 0.2);
+}
+
+.approved-card .viewer-photo {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 15px;
+  border-color: #4caf50;
+}
+
+.approved-card .viewer-info h4,
+.approved-card .viewer-info p {
+  text-align: center;
+}
+
+.approved-card small {
+  color: #4caf50;
+  font-weight: 600;
+}
+
+/* LOADING */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  background: white;
+  border-radius: 15px;
+  margin: 0 auto;
+  max-width: 400px;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #f0f0f0;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-container p {
+  color: #666;
+  font-weight: 600;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .qr-header {
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+
+  .qr-header h1 {
+    width: 100%;
+    order: 2;
+  }
+
+  .btn-back {
+    order: 1;
+  }
+
+  .qr-section {
+    padding: 20px;
+  }
+
+  .request-header {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .request-time {
+    text-align: center;
+    width: 100%;
+  }
+
+  .request-actions {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .approved-container {
+    grid-template-columns: 1fr;
+  }
+
+  .btn-accept,
+  .btn-reject {
+    flex: 1;
+    min-width: 100px;
+  }
+
+  .device-badge {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .badge-icon {
+    margin: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .qr-generator-page {
+    padding: 10px;
+  }
+
+  .qr-header {
+    padding: 15px;
+    margin-bottom: 20px;
+  }
+
+  .qr-section {
+    padding: 15px;
+    margin-bottom: 15px;
+  }
+
+  .section-header h2 {
+    font-size: 18px;
+  }
+
+  .request-card {
+    padding: 15px;
+  }
+
+  .viewer-photo {
+    width: 50px;
+    height: 50px;
+  }
+
+  .btn-toggle-qr {
+    width: 100%;
+  }
+
+  .btn-accept,
+  .btn-reject {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+}

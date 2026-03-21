@@ -1,0 +1,295 @@
+/* QR SCAN PAGE */
+.qrscan-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.qrscan-container {
+  background: white;
+  border-radius: 20px;
+  padding: 30px;
+  max-width: 500px;
+  width: 100%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+/* HEADER */
+.qrscan-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.qrscan-header h1 {
+  font-size: 28px;
+  color: #333;
+  margin: 0 0 10px 0;
+}
+
+.qrscan-header p {
+  color: #666;
+  font-size: 14px;
+  margin: 0;
+}
+
+/* ILLUSTRATION */
+.qrscan-illustration {
+  text-align: center;
+  margin: 30px 0;
+  padding: 30px;
+  background: #f5f5f5;
+  border-radius: 15px;
+}
+
+.qr-icon {
+  font-size: 60px;
+  margin-bottom: 15px;
+}
+
+.qrscan-illustration p {
+  color: #666;
+  margin: 0;
+  font-size: 14px;
+}
+
+/* CAMERA CONTAINER */
+.camera-container {
+  position: relative;
+  width: 100%;
+  margin: 30px 0;
+  background: #000;
+  border-radius: 15px;
+  overflow: hidden;
+  aspect-ratio: 1 / 1;
+}
+
+.camera-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.camera-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.camera-frame {
+  width: 70%;
+  height: 70%;
+  border: 3px solid #00ff00;
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+}
+
+/* SCAN RESULT */
+.scan-result {
+  background: #e8f5e9;
+  border: 2px solid #4caf50;
+  border-radius: 15px;
+  padding: 20px;
+  margin: 30px 0;
+  text-align: center;
+}
+
+.result-icon {
+  font-size: 40px;
+  margin-bottom: 10px;
+}
+
+.result-text {
+  color: #2e7d32;
+  font-size: 12px;
+  word-break: break-all;
+  margin: 0;
+  font-family: monospace;
+}
+
+/* DEVICE INFO PREVIEW */
+.device-info-preview {
+  background: #f5f5f5;
+  border-radius: 12px;
+  padding: 15px;
+  margin: 20px 0;
+}
+
+.device-info-preview h3 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: #333;
+}
+
+.device-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.device-details p {
+  margin: 0;
+  font-size: 13px;
+  color: #666;
+}
+
+.device-details span {
+  font-weight: 600;
+  color: #333;
+  display: inline-block;
+  min-width: 70px;
+}
+
+.device-hint {
+  display: block;
+  margin-top: 10px;
+  color: #999;
+  font-size: 11px;
+  font-style: italic;
+}
+
+/* BUTTONS */
+.button-group {
+  display: flex;
+  gap: 10px;
+  margin: 30px 0 0 0;
+}
+
+.btn-primary,
+.btn-success,
+.btn-secondary,
+.btn-cancel {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  width: 100%;
+  padding: 14px;
+  font-size: 15px;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-success {
+  background: #4caf50;
+  color: white;
+  flex: 1;
+}
+
+.btn-success:hover:not(:disabled) {
+  background: #45a049;
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  background: #e0e0e0;
+  color: #333;
+  flex: 1;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #d0d0d0;
+}
+
+.btn-cancel {
+  background: #e0e0e0;
+  color: #333;
+  width: 100%;
+  margin-top: 15px;
+}
+
+.btn-cancel:hover:not(:disabled) {
+  background: #d0d0d0;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* STEPS */
+.qrscan-steps {
+  background: #f5f5f5;
+  border-radius: 12px;
+  padding: 15px;
+  margin-top: 30px;
+}
+
+.qrscan-steps h3 {
+  margin: 0 0 15px 0;
+  font-size: 14px;
+  color: #333;
+}
+
+.qrscan-steps ol {
+  margin: 0;
+  padding-left: 20px;
+  color: #666;
+  font-size: 13px;
+}
+
+.qrscan-steps li {
+  margin-bottom: 8px;
+}
+
+/* ERROR */
+.error-message {
+  background: #ffebee;
+  color: #c62828;
+  padding: 12px;
+  border-radius: 8px;
+  margin-top: 15px;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* RESPONSIVE */
+@media (max-width: 480px) {
+  .qrscan-container {
+    padding: 20px;
+  }
+
+  .qrscan-header h1 {
+    font-size: 22px;
+  }
+
+  .btn-primary,
+  .btn-success,
+  .btn-secondary,
+  .btn-cancel {
+    font-size: 13px;
+    padding: 11px 16px;
+  }
+
+  .device-info-preview {
+    padding: 12px;
+  }
+
+  .device-details p {
+    font-size: 12px;
+  }
+}

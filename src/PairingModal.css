@@ -1,0 +1,356 @@
+/* ============================================
+   PAIRING MODAL STYLING
+   Aesthetic & responsive untuk semua ukuran
+   ============================================ */
+
+.pairing-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.pairing-modal-content {
+  background: linear-gradient(135deg, #FFF8F0 0%, #F0E6FF 100%);
+  border-radius: 20px;
+  padding: 40px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(212, 134, 155, 0.3);
+  border: 2px solid #D4869B;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ============================================
+   STEP STYLING
+   ============================================ */
+
+.pairing-step {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pairing-step h2 {
+  color: #5A4A5C;
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0;
+  text-align: center;
+}
+
+.pairing-step p {
+  color: #8B6F9E;
+  font-size: 14px;
+  margin: 0;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.pairing-step .info-text {
+  color: #C5B9D0;
+  font-size: 12px;
+  font-style: italic;
+}
+
+/* ============================================
+   BUTTON STYLING
+   ============================================ */
+
+.button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+button {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #D4869B, #8B6F9E);
+  color: white;
+  width: 100%;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(212, 134, 155, 0.3);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: white;
+  color: #8B6F9E;
+  border: 2px solid #D4869B;
+  width: 100%;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #FFF8F0;
+  transform: translateY(-2px);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-create {
+  background: linear-gradient(135deg, #3498DB, #2980B9);
+  color: white;
+  padding: 16px 20px;
+  width: 100%;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.btn-create:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(52, 152, 219, 0.3);
+}
+
+.btn-scan {
+  background: linear-gradient(135deg, #E91E63, #C2185B);
+  color: white;
+  padding: 16px 20px;
+  width: 100%;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.btn-scan:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(233, 30, 99, 0.3);
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #27AE60, #229954);
+  color: white;
+  width: 100%;
+}
+
+.btn-success:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(39, 174, 96, 0.3);
+}
+
+/* ============================================
+   QR CODE CONTAINER
+   ============================================ */
+
+.qr-container {
+  display: flex;
+  justify-content: center;
+  padding: 30px;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 8px 20px rgba(212, 134, 155, 0.1);
+}
+
+.qr-container canvas {
+  border-radius: 10px;
+}
+
+/* ============================================
+   GROUP INFO DISPLAY
+   ============================================ */
+
+.group-info {
+  background: white;
+  border-radius: 12px;
+  padding: 15px;
+  border-left: 4px solid #D4869B;
+}
+
+.group-info p {
+  margin: 8px 0;
+  color: #5A4A5C;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.group-info .smaller {
+  color: #C5B9D0;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+/* ============================================
+   CAMERA STYLING
+   ============================================ */
+
+.camera-container {
+  position: relative;
+  width: 100%;
+  border-radius: 15px;
+  overflow: hidden;
+  background: black;
+}
+
+.camera-container video {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.camera-container canvas {
+  display: none;
+}
+
+/* ============================================
+   CONFIRMATION STYLING
+   ============================================ */
+
+.confirmation {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  border: 2px dashed #D4869B;
+  text-align: center;
+}
+
+.scan-result {
+  color: #27AE60;
+  font-size: 12px;
+  word-break: break-all;
+  font-family: monospace;
+  margin: 0;
+  padding: 10px;
+  background: #E8F8F5;
+  border-radius: 8px;
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+@media (max-width: 768px) {
+  .pairing-modal-content {
+    padding: 30px;
+    border-radius: 15px;
+  }
+
+  .pairing-step h2 {
+    font-size: 20px;
+  }
+
+  .pairing-step p {
+    font-size: 13px;
+  }
+
+  button {
+    padding: 12px 20px;
+    font-size: 13px;
+  }
+
+  .qr-container {
+    padding: 20px;
+  }
+
+  .group-info {
+    padding: 12px;
+  }
+
+  .group-info p {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .pairing-modal-content {
+    padding: 20px;
+    max-width: 95%;
+    border-radius: 12px;
+  }
+
+  .pairing-step h2 {
+    font-size: 18px;
+  }
+
+  .pairing-step p {
+    font-size: 12px;
+  }
+
+  button {
+    padding: 11px 16px;
+    font-size: 12px;
+    border-radius: 10px;
+  }
+
+  .qr-container {
+    padding: 15px;
+  }
+
+  .pairing-modal-overlay {
+    padding: 10px;
+  }
+
+  .btn-create,
+  .btn-scan {
+    font-size: 12px;
+    padding: 14px 16px;
+  }
+}
+
+@media (max-width: 350px) {
+  .pairing-modal-content {
+    padding: 15px;
+  }
+
+  .pairing-step h2 {
+    font-size: 16px;
+  }
+
+  .pairing-step p {
+    font-size: 11px;
+  }
+
+  button {
+    padding: 10px 14px;
+    font-size: 11px;
+  }
+
+  .qr-container {
+    padding: 10px;
+  }
+}

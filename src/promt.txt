@@ -1,0 +1,9 @@
+alah yaudah lahh photo profil kita atur nanti aja
+
+
+
+sekarang mendingan bikin juga manu riwayat kami berdua yang isinya riwayat uang masuk kami dan buat juga untuk uang keluar. bikin tampilannya aestetic data satu dengan yang lain mudah di urutkan dan di data ulang oiya buat juga bagian ini tuh dapat di eksport ke word atau excel dengan tampilan tabel yang sangat detail terkait data yang ada supaya bisa di print. bikin tabel nya ada 3 macam 1 untuk cowo yang ke 2 untuk cewe dan yang ke 3 untuk cowo dan cewe(digabung) ingat loh yaa (tabel dengan struktur yang detail) bikin struktur tablenya tuh kaya no,nama,uang,tanggal dan lain lain kamu sesuaikan dulu aja yang cocok apa biar informasinya tuh detail
+
+
+
+ nanti bikin nya perlahan ajaaa okay kamu liat output nya kamu analisis perlahan. aku engga mentingin kecepatan kamu bikin nya tapi lebih ke se detail dan seakurat apa gitu loh aku engga suka kamu buat dengan cepet cepet tapi masih banyak bug. nanti sebelum kamu kirim hasil akhirnya yang udah jadi aku pengen aku lakukan testing makesure udah bener dan berfungsi semua dan engga ada bug atau malfungs

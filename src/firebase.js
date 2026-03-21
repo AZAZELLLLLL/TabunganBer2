@@ -14,7 +14,24 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
+// ← NEW: Define owner email (TETAPKAN DI SINI!)
+export const OWNER_EMAIL = "yudaelfinjodi@gmail.com"; // ← OWNER EMAIL!
+
 // Export auth, googleProvider, dan db
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 export const db = getFirestore(app);
+
+/**
+ * OWNER EMAIL CONFIG:
+ * 
+ * Email ini akan:
+ * ✅ Login tanpa verifikasi (langsung ke Menu)
+ * ✅ Punya menu "🔐 Generate QR"
+ * ✅ Bisa acc/reject viewer requests
+ * 
+ * Jika ingin ubah OWNER_EMAIL:
+ * 1. Edit line 21: export const OWNER_EMAIL = "...";
+ * 2. Save file
+ * 3. Login dengan email baru sebagai owner
+ */

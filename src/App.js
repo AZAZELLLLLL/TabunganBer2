@@ -9,6 +9,8 @@ import Expenses from "./Expenses";
 import Savings from "./Savings";
 import History from "./History";
 import Stats from "./Stats";
+import QRGenerator from "./QRGenerator";
+import PairingVerification from "./PairingVerification";
 import "./App.css";
 
 function App() {
@@ -18,7 +20,7 @@ function App() {
   const [currentPage, setCurrentPage] = useState("menu");
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  // Handle splash screen
+  // Splash screen timer
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowSplash(false);
@@ -26,18 +28,11 @@ function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Check if user is logged in
+  // Check authentication state
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
-        setUser({
-          uid: currentUser.uid,
-          name: currentUser.displayName || "User",
-          email: currentUser.email,
-          photo: currentUser.photoURL || "https://via.placeholder.com/150",
-          role: localStorage.getItem("userRole") || "cowo",
-          groupId: currentUser.uid,
-        });
+        console.log("Firebase user detected:", currentUser.email);
       } else {
         setUser(null);
       }
@@ -46,17 +41,18 @@ function App() {
     return unsubscribe;
   }, []);
 
+  // Navigate to page with transition
   const handleNavigate = (page) => {
     if (page === currentPage) return;
 
     setIsTransitioning(true);
-
     setTimeout(() => {
       setCurrentPage(page);
       setIsTransitioning(false);
     }, 300);
   };
 
+  // Logout
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -69,25 +65,18 @@ function App() {
     }
   };
 
-  const handleSplashComplete = () => {
-    setShowSplash(false);
-  };
-
-  // Loading state
   if (loading) {
     return <div className="app loading">Loading...</div>;
   }
 
-  // Splash screen
   if (showSplash) {
     return (
       <div className="app">
-        <Splash onComplete={handleSplashComplete} />
+        <Splash onComplete={() => setShowSplash(false)} />
       </div>
     );
   }
 
-  // Not logged in - show login
   if (!user) {
     return (
       <div className="app">
@@ -96,7 +85,6 @@ function App() {
     );
   }
 
-  // Logged in - show pages with transitions
   return (
     <div className="app">
       <div className={`page-container ${isTransitioning ? "transitioning" : ""}`}>
@@ -122,6 +110,21 @@ function App() {
 
         {currentPage === "stats" && (
           <Stats user={user} onNavigate={handleNavigate} />
+        )}
+
+        {/* QR Generator - Owner Only */}
+        {currentPage === "qr-generator" && user.isOwner === true && (
+          <QRGenerator
+            user={user}
+            onBack={() => handleNavigate("menu")}
+          />
+        )}
+
+        {currentPage === "pairing" && (
+          <PairingVerification
+            user={user}
+            onBack={() => handleNavigate("menu")}
+          />
         )}
       </div>
     </div>
