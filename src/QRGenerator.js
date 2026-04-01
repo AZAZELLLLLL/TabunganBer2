@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { QRCodeCanvas } from "qrcode.react";
-import { collection, query, where, getDocs, updateDoc, doc, onSnapshot } from "firebase/firestore";
+import { QRCodeSVG } from "qrcode.react";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  updateDoc,
+  doc,
+  onSnapshot,
+} from "firebase/firestore";
 import { db } from "./firebase";
 import "./QRGenerator.css";
-
-/**
- * QR GENERATOR - WORKING VERSION
- * 
- * - Real-time pending requests
- * - Accept/Reject functionality
- * - Show approved viewers
- * - Display QR code
- */
 
 export default function QRGenerator({ user, onBack }) {
   const [qrValue, setQrValue] = useState(null);
@@ -20,102 +19,72 @@ export default function QRGenerator({ user, onBack }) {
   const [approvedViewers, setApprovedViewers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showQR, setShowQR] = useState(false);
 
-  // ✅ Load group data
   useEffect(() => {
-    loadGroupData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.groupId]);
-
-  const loadGroupData = async () => {
-    try {
-      if (!user?.groupId) {
-        console.log("No groupId!");
-        setLoading(false);
-        setError("No group found");
-        return;
-      }
-
-      console.log("Loading group:", user.groupId);
-
-      const groupsRef = collection(db, "groups");
-      const q = query(groupsRef, where("groupId", "==", user.groupId));
-      
-      // Real-time listener
-      const unsubscribe = onSnapshot(
-        q,
-        (snapshot) => {
-          console.log("Snapshot received!");
-          
-          if (snapshot.empty) {
-            console.log("No group data!");
-            setError("Group not found");
-            setLoading(false);
-            return;
-          }
-
-          const groupDoc = snapshot.docs[0];
-          const groupData = groupDoc.data();
-
-          console.log("Group data:", groupData);
-
-          setGroupId(groupData.groupId);
-          setQrValue(`yubul://group/${groupData.groupId}`);
-          
-          const allRequests = groupData.pendingApprovals || [];
-          const pending = allRequests.filter(r => r.status !== "approved") || [];
-          const approved = allRequests.filter(r => r.status === "approved") || [];
-          
-          console.log("Pending:", pending.length, "Approved:", approved.length);
-          
-          setPendingRequests(pending);
-          setApprovedViewers(approved);
-          setError(null);
-          setLoading(false);
-        },
-        (error) => {
-          console.error("Snapshot error:", error);
-          setError("Error: " + error.message);
-          setLoading(false);
-        }
-      );
-
-      return () => unsubscribe();
-    } catch (err) {
-      console.error("Error:", err);
-      setError("Error: " + err.message);
+    if (!user?.groupId) {
+      setError("Group tidak ditemukan. Pastikan akun owner sudah punya group.");
       setLoading(false);
+      return;
     }
-  };
+
+    const groupsRef = collection(db, "groups");
+    const q = query(groupsRef, where("groupId", "==", user.groupId));
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        if (snapshot.empty) {
+          setError("Data group tidak ditemukan di Firestore.");
+          setLoading(false);
+          return;
+        }
+
+        const groupDoc = snapshot.docs[0];
+        const groupData = groupDoc.data();
+
+        setGroupId(groupData.groupId);
+        setQrValue(`yubul://group/${groupData.groupId}`);
+
+        const allRequests = groupData.pendingApprovals || [];
+        setPendingRequests(allRequests.filter((r) => r.status !== "approved"));
+        setApprovedViewers(allRequests.filter((r) => r.status === "approved"));
+
+        setError(null);
+        setLoading(false);
+      },
+      (err) => {
+        console.error("Snapshot error:", err);
+        setError("Error memuat data: " + err.message);
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [user?.groupId]);
 
   const handleAccept = async (index) => {
     try {
-      if (!groupId) return;
-
       const groupsRef = collection(db, "groups");
       const q = query(groupsRef, where("groupId", "==", groupId));
       const snapshot = await getDocs(q);
-      
       if (snapshot.empty) return;
 
       const groupDoc = snapshot.docs[0];
       const groupData = groupDoc.data();
-      
+
       const updated = groupData.pendingApprovals.map((req, i) =>
         i === index ? { ...req, status: "approved" } : req
       );
-      
+
       await updateDoc(doc(db, "groups", groupDoc.id), {
         pendingApprovals: updated,
       });
 
-      const viewerRef = doc(db, "users", pendingRequests[index].uid);
-      await updateDoc(viewerRef, {
+      await updateDoc(doc(db, "users", pendingRequests[index].uid), {
         approvalStatus: "approved",
       });
 
-      console.log("✅ Approved!");
+      alert("✅ Viewer berhasil di-approve!");
     } catch (err) {
       console.error("Accept error:", err);
       alert("Error: " + err.message);
@@ -124,315 +93,164 @@ export default function QRGenerator({ user, onBack }) {
 
   const handleReject = async (index) => {
     try {
-      if (!groupId) return;
-
       const groupsRef = collection(db, "groups");
       const q = query(groupsRef, where("groupId", "==", groupId));
       const snapshot = await getDocs(q);
-      
       if (snapshot.empty) return;
 
       const groupDoc = snapshot.docs[0];
       const groupData = groupDoc.data();
-      
+
       const updated = groupData.pendingApprovals.map((req, i) =>
         i === index ? { ...req, status: "rejected" } : req
       );
-      
+
       await updateDoc(doc(db, "groups", groupDoc.id), {
         pendingApprovals: updated,
       });
 
-      const viewerRef = doc(db, "users", pendingRequests[index].uid);
-      await updateDoc(viewerRef, {
+      await updateDoc(doc(db, "users", pendingRequests[index].uid), {
         approvalStatus: "rejected",
       });
 
-      console.log("❌ Rejected!");
+      alert("❌ Viewer ditolak.");
     } catch (err) {
       console.error("Reject error:", err);
       alert("Error: " + err.message);
     }
   };
 
+  // ─── LOADING ────────────────────────────────────────────────
   if (loading) {
     return (
-      <div style={{
-        minHeight: "100vh",
-        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-        display: "flex",
-        flexDirection: "column",
-        padding: "20px",
-      }}>
-        <div style={{
-          background: "white",
-          borderRadius: "20px",
-          padding: "30px",
-          marginBottom: "20px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}>
-          <button
-            onClick={onBack}
-            style={{
-              padding: "10px 20px",
-              border: "2px solid #D4A5E8",
-              background: "white",
-              borderRadius: "8px",
-              cursor: "pointer",
-              fontWeight: "600",
-            }}
-          >
-            ← Back
-          </button>
-          <h1 style={{ margin: "0", fontSize: "24px" }}>🔐 Generate QR Code</h1>
-          <div></div>
+      <div className="qr-generator-page">
+        <div className="qr-header">
+          <button onClick={onBack} className="btn-back">← Back</button>
+          <h1>🔐 Generate QR Code</h1>
+          <div />
         </div>
-
-        <div style={{
-          background: "white",
-          borderRadius: "20px",
-          padding: "60px 30px",
-          textAlign: "center",
-          flex: 1,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}>
-          <div>
-            <div style={{
-              width: "50px",
-              height: "50px",
-              border: "4px solid #E0E0E0",
-              borderTop: "4px solid #667eea",
-              borderRadius: "50%",
-              animation: "spin 1s linear infinite",
-              margin: "0 auto 20px",
-            }}></div>
-            <p style={{ fontSize: "18px", color: "#999", margin: "0" }}>Loading...</p>
+        <div className="qr-section">
+          <div className="loading-container">
+            <div className="spinner" />
+            <p className="loading-text">Memuat data...</p>
           </div>
         </div>
-
-        <style>{`
-          @keyframes spin { to { transform: rotate(360deg); } }
-        `}</style>
       </div>
     );
   }
 
+  // ─── ERROR ───────────────────────────────────────────────────
   if (error) {
     return (
-      <div style={{
-        minHeight: "100vh",
-        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-        display: "flex",
-        flexDirection: "column",
-        padding: "20px",
-      }}>
-        <div style={{
-          background: "white",
-          borderRadius: "20px",
-          padding: "30px",
-          marginBottom: "20px",
-        }}>
-          <button
-            onClick={onBack}
-            style={{
-              padding: "10px 20px",
-              border: "2px solid #D4A5E8",
-              background: "white",
-              borderRadius: "8px",
-              cursor: "pointer",
-              fontWeight: "600",
-            }}
-          >
-            ← Back
-          </button>
+      <div className="qr-generator-page">
+        <div className="qr-header">
+          <button onClick={onBack} className="btn-back">← Back</button>
+          <h1>🔐 Generate QR Code</h1>
+          <div />
         </div>
-
-        <div style={{
-          background: "white",
-          borderRadius: "20px",
-          padding: "30px",
-          textAlign: "center",
-          border: "2px solid #E74C3C",
-        }}>
-          <p style={{ color: "#E74C3C", fontSize: "16px", fontWeight: "600", margin: "0" }}>
-            ❌ {error}
-          </p>
-          <p style={{ color: "#999", fontSize: "14px", margin: "10px 0 0" }}>
-            Check console for more details
-          </p>
+        <div className="qr-section">
+          <div className="error-state">
+            <p className="error-title">❌ {error}</p>
+            <p className="error-hint">Coba refresh halaman atau hubungi developer.</p>
+          </div>
         </div>
       </div>
     );
   }
 
+  // ─── MAIN ─────────────────────────────────────────────────────
   return (
-    <div style={{
-      minHeight: "100vh",
-      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-      display: "flex",
-      flexDirection: "column",
-      padding: "20px",
-      gap: "20px",
-    }}>
+    <div className="qr-generator-page">
+
       {/* HEADER */}
-      <div style={{
-        background: "white",
-        borderRadius: "20px",
-        padding: "30px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-      }}>
-        <button
-          onClick={onBack}
-          style={{
-            padding: "10px 20px",
-            border: "2px solid #D4A5E8",
-            background: "white",
-            borderRadius: "8px",
-            cursor: "pointer",
-            fontWeight: "600",
-          }}
-        >
-          ← Back
-        </button>
-        <h1 style={{ margin: "0", fontSize: "24px" }}>🔐 Generate QR Code</h1>
-        <div></div>
+      <div className="qr-header">
+        <button onClick={onBack} className="btn-back">← Back</button>
+        <h1>🔐 Generate QR Code</h1>
+        <div />
       </div>
 
-      {/* QR SECTION */}
-      <div style={{
-        background: "white",
-        borderRadius: "20px",
-        padding: "30px",
-      }}>
-        <h2 style={{ margin: "0 0 20px", fontSize: "20px" }}>📱 QR Code</h2>
-        
+      {/* QR CODE */}
+      <div className="qr-section">
+        <div className="section-header">
+          <h2>📱 QR Code Pasangan</h2>
+          <p className="section-description">
+            Tunjukkan QR ini ke pasanganmu untuk bergabung ke aplikasi.
+          </p>
+        </div>
+
         {qrValue ? (
-          <div style={{ textAlign: "center" }}>
-            {showQR && (
-              <div style={{ marginBottom: "20px" }}>
-                <QRCodeCanvas
-                  value={qrValue}
-                  size={250}
-                  level="H"
-                  includeMargin={true}
-                  style={{ border: "10px solid #fff", borderRadius: "10px" }}
-                />
-                <p style={{ marginTop: "15px", color: "#999", fontSize: "14px", margin: "0" }}>
-                  <strong>Group ID:</strong> {groupId}
-                </p>
-              </div>
-            )}
-            
-            <button
-              onClick={() => setShowQR(!showQR)}
-              style={{
-                padding: "12px 24px",
-                background: showQR ? "#E74C3C" : "#667eea",
-                color: "white",
-                border: "none",
-                borderRadius: "12px",
-                fontWeight: "600",
-                cursor: "pointer",
-              }}
-            >
-              {showQR ? "Hide QR" : "Show QR"}
-            </button>
+          <div className="qr-display-container">
+            <div className="qr-display">
+              <QRCodeSVG
+                value={qrValue}
+                size={220}
+                level="H"
+                includeMargin={true}
+              />
+            </div>
+            <div className="group-id-badge">
+              <p className="group-id-label">Group ID</p>
+              <p className="group-id-value">{groupId}</p>
+            </div>
           </div>
         ) : (
-          <p style={{ color: "#999", margin: "0" }}>❌ No QR code available</p>
+          <div className="empty-state">
+            <span className="empty-icon">❌</span>
+            <p className="empty-text">QR tidak tersedia</p>
+          </div>
         )}
       </div>
 
-      {/* PENDING SECTION */}
-      <div style={{
-        background: "white",
-        borderRadius: "20px",
-        padding: "30px",
-      }}>
-        <h2 style={{ margin: "0 0 20px", fontSize: "20px" }}>⏳ Pending ({pendingRequests.length})</h2>
-        
+      {/* PENDING REQUESTS */}
+      <div className="qr-section">
+        <div className="section-header">
+          <h2>
+            ⏳ Permintaan Masuk
+            {pendingRequests.length > 0 && (
+              <span className="pending-count-badge">{pendingRequests.length}</span>
+            )}
+          </h2>
+        </div>
+
         {pendingRequests.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "30px", color: "#999" }}>
-            <p style={{ fontSize: "48px", margin: "0" }}>📋</p>
-            <p style={{ margin: "10px 0 0" }}>No pending requests</p>
+          <div className="empty-state">
+            <span className="empty-icon">📋</span>
+            <p className="empty-text">Belum ada permintaan masuk</p>
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
+          <div className="requests-container">
             {pendingRequests.map((request, index) => (
-              <div key={index} style={{
-                padding: "20px",
-                border: "2px solid #E0E0E0",
-                borderRadius: "12px",
-                background: "#F9F9F9",
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "15px" }}>
+              <div key={index} className="request-card">
+                <div className="request-header">
                   <img
                     src={request.photo || "https://via.placeholder.com/50"}
                     alt={request.name}
-                    style={{ width: "50px", height: "50px", borderRadius: "50%", objectFit: "cover" }}
+                    className="viewer-photo"
                   />
-                  <div style={{ flex: 1 }}>
-                    <p style={{ margin: "0", fontWeight: "600", color: "#333" }}>
-                      {request.name} ({request.gender === "cowo" ? "👨" : "👩"})
+                  <div className="viewer-info">
+                    <p className="viewer-name">
+                      {request.name}{" "}
+                      {request.gender === "cowo" ? "👨" : "👩"}
                     </p>
-                    <p style={{ margin: "3px 0 0", fontSize: "12px", color: "#999" }}>
-                      {request.email}
-                    </p>
+                    <p className="viewer-email">{request.email}</p>
                   </div>
                 </div>
 
                 {request.deviceInfo && (
-                  <div style={{
-                    padding: "12px",
-                    background: "white",
-                    borderRadius: "8px",
-                    marginBottom: "15px",
-                    fontSize: "13px",
-                  }}>
-                    <p style={{ margin: "0 0 8px", fontWeight: "600" }}>📱 Device:</p>
-                    <p style={{ margin: "0 0 4px" }}><strong>Type:</strong> {request.deviceInfo.deviceType}</p>
-                    <p style={{ margin: "0 0 4px" }}><strong>OS:</strong> {request.deviceInfo.deviceOS}</p>
-                    <p style={{ margin: "0 0 4px" }}><strong>Browser:</strong> {request.deviceInfo.deviceBrowser}</p>
-                    <p style={{ margin: "0 0 4px" }}><strong>Model:</strong> {request.deviceInfo.deviceModel}</p>
+                  <div className="device-info-section">
+                    <p className="device-info-title">📱 Info Device:</p>
+                    <p className="device-specs"><b>Type:</b> {request.deviceInfo.deviceType}</p>
+                    <p className="device-specs"><b>OS:</b> {request.deviceInfo.deviceOS}</p>
+                    <p className="device-specs"><b>Browser:</b> {request.deviceInfo.deviceBrowser}</p>
                   </div>
                 )}
 
-                <div style={{ display: "flex", gap: "10px" }}>
-                  <button
-                    onClick={() => handleAccept(index)}
-                    style={{
-                      flex: 1,
-                      padding: "10px",
-                      background: "#4CAF50",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "8px",
-                      fontWeight: "600",
-                      cursor: "pointer",
-                    }}
-                  >
-                    ✅ Accept
+                <div className="request-actions">
+                  <button onClick={() => handleAccept(index)} className="btn-accept">
+                    ✅ Terima
                   </button>
-                  <button
-                    onClick={() => handleReject(index)}
-                    style={{
-                      flex: 1,
-                      padding: "10px",
-                      background: "#E74C3C",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "8px",
-                      fontWeight: "600",
-                      cursor: "pointer",
-                    }}
-                  >
-                    ❌ Reject
+                  <button onClick={() => handleReject(index)} className="btn-reject">
+                    ❌ Tolak
                   </button>
                 </div>
               </div>
@@ -441,44 +259,34 @@ export default function QRGenerator({ user, onBack }) {
         )}
       </div>
 
-      {/* APPROVED SECTION */}
+      {/* APPROVED VIEWERS */}
       {approvedViewers.length > 0 && (
-        <div style={{
-          background: "white",
-          borderRadius: "20px",
-          padding: "30px",
-        }}>
-          <h2 style={{ margin: "0 0 20px", fontSize: "20px" }}>✅ Approved ({approvedViewers.length})</h2>
-          
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div className="qr-section">
+          <div className="section-header">
+            <h2>✅ Sudah Bergabung ({approvedViewers.length})</h2>
+          </div>
+          <div className="approved-container">
             {approvedViewers.map((viewer, index) => (
-              <div key={index} style={{
-                padding: "15px",
-                background: "#F0F8F0",
-                borderRadius: "12px",
-                border: "2px solid #4CAF50",
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-              }}>
+              <div key={index} className="approved-card">
                 <img
                   src={viewer.photo || "https://via.placeholder.com/40"}
                   alt={viewer.name}
-                  style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover" }}
+                  className="viewer-photo"
                 />
-                <div style={{ flex: 1 }}>
-                  <p style={{ margin: "0", fontWeight: "600", color: "#333" }}>
-                    {viewer.name} ({viewer.gender === "cowo" ? "👨" : "👩"})
+                <div className="viewer-info">
+                  <p className="viewer-name">
+                    {viewer.name}{" "}
+                    {viewer.gender === "cowo" ? "👨" : "👩"}
                   </p>
-                  <p style={{ margin: "3px 0 0", fontSize: "12px", color: "#999" }}>
-                    {viewer.email}
-                  </p>
+                  <p className="viewer-email">{viewer.email}</p>
                 </div>
+                <span className="approved-badge">✅ Approved</span>
               </div>
             ))}
           </div>
         </div>
       )}
+
     </div>
   );
 }

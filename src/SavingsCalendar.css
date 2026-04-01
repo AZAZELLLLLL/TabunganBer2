@@ -1,0 +1,636 @@
+/* ===================================================
+   SAVINGS CALENDAR PAGE
+   =================================================== */
+
+.calendar-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #FFE8F1 0%, #F0E6FF 100%);
+  padding: 20px;
+  padding-top: 76px; /* ruang untuk back button fixed */
+  box-sizing: border-box;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── BACK BUTTON ─────────────────────────────────── */
+.cal-back-btn {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 999;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #D4869B, #8B6F9E);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.cal-back-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(212, 134, 155, 0.35);
+}
+
+/* ── HEADER ──────────────────────────────────────── */
+.cal-header {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(139, 111, 158, 0.1);
+  text-align: center;
+}
+
+.cal-title {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 800;
+  color: #333;
+}
+
+.cal-subtitle {
+  margin: 0 0 18px;
+  font-size: 14px;
+  color: #888;
+}
+
+/* Legenda */
+.cal-legend {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #555;
+}
+
+.legend-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legend-dot.green { background: #27AE60; }
+.legend-dot.red   { background: #E74C3C; }
+.legend-dot.today-dot {
+  background: white;
+  border: 2px solid #8B6F9E;
+}
+
+/* ── CARD BASE ───────────────────────────────────── */
+.cal-card {
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(139, 111, 158, 0.1);
+}
+
+/* ── NAVIGASI BULAN ──────────────────────────────── */
+.cal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.cal-nav-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.cal-month-label {
+  font-size: 18px;
+  font-weight: 800;
+  color: #333;
+}
+
+.cal-today-btn {
+  font-size: 11px;
+  color: #8B6F9E;
+  background: #F8F0FF;
+  border: 1px solid #D4A5E8;
+  border-radius: 20px;
+  padding: 2px 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.cal-today-btn:hover {
+  background: #EDD9FF;
+}
+
+.cal-nav-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 2px solid #E8D4F8;
+  background: white;
+  color: #8B6F9E;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  transition: all 0.2s;
+}
+
+.cal-nav-btn:hover {
+  background: #F8F0FF;
+  border-color: #8B6F9E;
+}
+
+/* ── HEADER HARI ─────────────────────────────────── */
+.cal-grid-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 4px;
+}
+
+.cal-day-name {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #8B6F9E;
+  padding: 6px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* ── GRID TANGGAL ────────────────────────────────── */
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+/* Sel kosong */
+.cal-cell.empty {
+  visibility: hidden;
+}
+
+/* Sel tanggal */
+.cal-cell {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.cal-cell:not(.empty):hover {
+  background: #F8F0FF;
+  transform: scale(1.08);
+}
+
+/* Hari ini */
+.cal-cell.is-today {
+  border: 2px solid #8B6F9E;
+}
+
+/* Sel yang sedang dipilih */
+.cal-cell.is-selected {
+  background: #F0E6FF;
+  border: 2px solid #8B6F9E;
+}
+
+/* ── INDIKATOR WARNA (background di belakang angka) ── */
+.cal-indicator {
+  position: absolute;
+  inset: 3px;
+  border-radius: 7px;
+  z-index: 0;
+  opacity: 0.22;
+}
+
+.green-indicator {
+  background: #27AE60;
+}
+
+.red-indicator {
+  background: #E74C3C;
+}
+
+/* ── ANGKA TANGGAL (di atas indikator) ─────────────── */
+.cal-date-num {
+  position: relative;
+  z-index: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  line-height: 1;
+  user-select: none;
+}
+
+/* Kalau libur → angka merah */
+.cal-cell:has(.red-indicator) .cal-date-num {
+  color: #C0392B;
+  font-weight: 700;
+}
+
+/* Kalau ada tabungan (bukan libur) → angka hijau gelap */
+.cal-cell:has(.green-indicator) .cal-date-num {
+  color: #1E8449;
+  font-weight: 700;
+}
+
+/* ── DUAL DOT (ada tabungan DAN libur) ────────────── */
+.cal-dual-dot {
+  position: absolute;
+  bottom: 3px;
+  right: 4px;
+  z-index: 2;
+  display: flex;
+  gap: 2px;
+}
+
+.mini-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+
+.mini-dot.green-dot { background: #27AE60; }
+.mini-dot.red-dot   { background: #E74C3C; }
+
+/* ── RINGKASAN BULAN ────────────────────────────── */
+.cal-summary {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #F0E6FF;
+  flex-wrap: wrap;
+}
+
+.cal-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: #555;
+  font-weight: 600;
+}
+
+.summary-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+.summary-dot.green { background: #27AE60; }
+.summary-dot.red   { background: #E74C3C; }
+
+/* ── DETAIL POPUP ─────────────────────────────────── */
+.detail-card {
+  border: 2px solid #E8D4F8;
+  animation: slideUp 0.25s ease;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.detail-header h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #333;
+}
+
+.detail-close-btn {
+  background: #F5F5F5;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 14px;
+  color: #888;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.detail-close-btn:hover {
+  background: #FFE0E0;
+  color: #E74C3C;
+}
+
+.detail-holiday-badge {
+  background: #FFF0F0;
+  border: 1px solid #FFCDD2;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #C0392B;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.detail-del-holiday {
+  background: #E74C3C;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.detail-del-holiday:hover {
+  background: #C0392B;
+}
+
+.detail-empty {
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+  padding: 16px 0;
+  margin: 0;
+}
+
+.detail-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #555;
+  margin: 0 0 10px;
+}
+
+.detail-savings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detail-saving-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #F8FFF8;
+  border-radius: 8px;
+  border: 1px solid #DCEFD8;
+}
+
+.detail-role-badge {
+  font-size: 13px;
+  font-weight: 600;
+  color: #2E7D32;
+}
+
+.detail-role-badge.cewe {
+  color: #AD1457;
+}
+
+.detail-amount {
+  font-size: 14px;
+  font-weight: 700;
+  color: #27AE60;
+}
+
+.detail-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: #F0FFF0;
+  border-radius: 8px;
+  border: 2px solid #A5D6A7;
+  margin-top: 4px;
+  font-weight: 700;
+  font-size: 14px;
+  color: #333;
+}
+
+.detail-total-amount {
+  color: #27AE60;
+  font-size: 15px;
+}
+
+/* ── FORM HARI LIBUR ─────────────────────────────── */
+/* .holiday-form-card {} */
+
+.holiday-form-title {
+  margin: 0 0 6px;
+  font-size: 17px;
+  font-weight: 800;
+  color: #333;
+}
+
+.holiday-form-desc {
+  margin: 0 0 18px;
+  font-size: 13px;
+  color: #888;
+}
+
+.holiday-form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #555;
+}
+
+.form-input {
+  padding: 10px 14px;
+  border: 2px solid #E8D4F8;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #333;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.form-input:focus {
+  border-color: #8B6F9E;
+}
+
+.holiday-add-btn {
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #D4869B, #8B6F9E);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.holiday-add-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(139, 111, 158, 0.3);
+}
+
+.holiday-add-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ── DAFTAR HARI LIBUR ─────────────────────────────── */
+.holiday-list {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #F0E6FF;
+}
+
+.holiday-list-title {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #555;
+}
+
+.holiday-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #FFF5F5;
+  border: 1px solid #FFCDD2;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  gap: 10px;
+}
+
+.holiday-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.holiday-item-date {
+  font-size: 14px;
+  font-weight: 700;
+  color: #C0392B;
+}
+
+.holiday-item-reason {
+  font-size: 12px;
+  color: #888;
+}
+
+.holiday-del-btn {
+  background: #FFE0E0;
+  color: #E74C3C;
+  border: none;
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.holiday-del-btn:hover {
+  background: #E74C3C;
+  color: white;
+}
+
+/* ── RESPONSIVE ──────────────────────────────────── */
+@media (max-width: 480px) {
+  .calendar-page {
+    padding: 14px;
+    padding-top: 70px;
+    gap: 14px;
+  }
+
+  .cal-title {
+    font-size: 18px;
+  }
+
+  .cal-card {
+    padding: 16px;
+  }
+
+  .cal-month-label {
+    font-size: 16px;
+  }
+
+  .cal-date-num {
+    font-size: 12px;
+  }
+
+  .cal-grid {
+    gap: 3px;
+  }
+
+  .cal-cell {
+    border-radius: 7px;
+  }
+
+  .cal-legend {
+    gap: 14px;
+  }
+}
+
+@media (max-width: 360px) {
+  .cal-date-num {
+    font-size: 11px;
+  }
+
+  .cal-day-name {
+    font-size: 10px;
+  }
+
+  .cal-nav-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
+  }
+}

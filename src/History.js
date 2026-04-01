@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   collection,
   query,
@@ -6,8 +6,14 @@ import {
   onSnapshot,
   deleteDoc,
   doc,
+  writeBatch,
 } from "firebase/firestore";
 import { db } from "./firebase";
+import {
+  exportSavingsToExcel,
+  exportSavingsToWord,
+  parseSavingsImportFile,
+} from "./reportUtils";
 import "./History.css";
 
 export default function History({ user, onNavigate }) {
@@ -18,6 +24,8 @@ export default function History({ user, onNavigate }) {
   const [filterPerson, setFilterPerson] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [importingSavings, setImportingSavings] = useState(false);
+  const importInputRef = useRef(null);
 
   // Fetch savings data
   useEffect(() => {
@@ -71,7 +79,11 @@ export default function History({ user, onNavigate }) {
   const monthEnd = new Date(
     filterMonth.getFullYear(),
     filterMonth.getMonth() + 1,
-    0
+    0,
+    23,
+    59,
+    59,
+    999
   );
 
   // Filtered savings
@@ -92,7 +104,7 @@ export default function History({ user, onNavigate }) {
     .filter((e) => filterCategory === "all" || e.category === filterCategory)
     .filter((e) => 
       searchQuery === "" || 
-      e.description.toLowerCase().includes(searchQuery.toLowerCase())
+      (e.description || "").toLowerCase().includes(searchQuery.toLowerCase())
     );
 
   // Calculate totals
@@ -158,6 +170,143 @@ export default function History({ user, onNavigate }) {
     month: "long",
     year: "numeric",
   });
+
+  const savingsReportSummary = {
+    totalTransactions: filteredSavings.length,
+    totalAmount: totalSavings,
+    cowoAmount: cowoSavings,
+    ceweAmount: ceweSavings,
+  };
+
+  const buildSavingSignature = (saving) => {
+    const savingDate = saving.date?.toDate ? saving.date.toDate() : new Date(saving.date);
+
+    return [
+      savingDate.getTime(),
+      (saving.userName || "").trim().toLowerCase(),
+      saving.role || "",
+      Number(saving.amount || 0),
+    ].join("|");
+  };
+
+  const handleExportSavingsExcel = () => {
+    if (!filteredSavings.length) {
+      alert(`Belum ada data tabungan untuk bulan ${currentMonth}.`);
+      return;
+    }
+
+    exportSavingsToExcel({
+      savings: filteredSavings,
+      monthLabel: currentMonth,
+      summary: savingsReportSummary,
+    });
+  };
+
+  const handleExportSavingsWord = () => {
+    if (!filteredSavings.length) {
+      alert(`Belum ada data tabungan untuk bulan ${currentMonth}.`);
+      return;
+    }
+
+    exportSavingsToWord({
+      savings: filteredSavings,
+      monthLabel: currentMonth,
+      summary: savingsReportSummary,
+    });
+  };
+
+  const handleOpenImportDialog = () => {
+    importInputRef.current?.click();
+  };
+
+  const handleImportSavings = async (event) => {
+    const selectedFile = event.target.files?.[0];
+
+    if (!selectedFile) return;
+    if (!user.groupId) {
+      alert("Akun ini belum terhubung ke group pasangan, jadi data belum bisa diimpor.");
+      event.target.value = "";
+      return;
+    }
+
+    setImportingSavings(true);
+
+    try {
+      const parsedRows = await parseSavingsImportFile(selectedFile);
+      const existingSignatures = new Set(regularSavings.map(buildSavingSignature));
+      const rowsToImport = [];
+      let duplicateCount = 0;
+
+      parsedRows.forEach((row) => {
+        const signature = [
+          row.date.getTime(),
+          (row.userName || "").trim().toLowerCase(),
+          row.role,
+          Number(row.amount || 0),
+        ].join("|");
+
+        if (existingSignatures.has(signature)) {
+          duplicateCount += 1;
+          return;
+        }
+
+        existingSignatures.add(signature);
+        rowsToImport.push(row);
+      });
+
+      if (!rowsToImport.length) {
+        alert(
+          duplicateCount > 0
+            ? "Semua data di file ini sudah pernah masuk, jadi tidak ada yang ditambahkan."
+            : "Tidak ada data valid yang bisa diimpor."
+        );
+        return;
+      }
+
+      const isConfirmed = window.confirm(
+        `Import ${rowsToImport.length} data tabungan ke bulan ${currentMonth}?` +
+          (duplicateCount > 0 ? `\n${duplicateCount} data duplikat akan dilewati.` : "")
+      );
+
+      if (!isConfirmed) return;
+
+      for (let index = 0; index < rowsToImport.length; index += 400) {
+        const batch = writeBatch(db);
+        const chunk = rowsToImport.slice(index, index + 400);
+
+        chunk.forEach((row) => {
+          const savingRef = doc(collection(db, "savings"));
+          batch.set(savingRef, {
+            groupId: user.groupId || "default",
+            role: row.role,
+            userName:
+              row.userName || (row.role === "cowo" ? "Import Cowo" : "Import Cewe"),
+            userPhoto: user.photo || "",
+            userId: user.uid,
+            amount: Number(row.amount),
+            date: row.date,
+            importedAt: new Date(),
+            importedBy: user.uid,
+            importFileName: selectedFile.name,
+          });
+        });
+
+        // eslint-disable-next-line no-await-in-loop
+        await batch.commit();
+      }
+
+      alert(
+        `Import berhasil! ${rowsToImport.length} data tabungan ditambahkan.` +
+          (duplicateCount > 0 ? ` ${duplicateCount} data duplikat dilewati.` : "")
+      );
+    } catch (error) {
+      console.error("Import savings error:", error);
+      alert(`Gagal impor data tabungan: ${error.message}`);
+    } finally {
+      event.target.value = "";
+      setImportingSavings(false);
+    }
+  };
 
   return (
     <>
@@ -319,7 +468,55 @@ export default function History({ user, onNavigate }) {
 
             {/* Savings Table/List */}
             <div className="data-section">
-              <h3>📊 Detail Tabungan</h3>
+              <div className="data-section-head">
+                <div>
+                  <h3>📊 Detail Tabungan</h3>
+                  <p className="report-note">
+                    Export laporan bulan {currentMonth} ke Excel atau Word, lalu import lagi
+                    dari file Excel/CSV kalau mau menambah data lebih cepat.
+                  </p>
+                </div>
+
+                <div className="report-actions">
+                  <button
+                    type="button"
+                    className="report-btn secondary"
+                    onClick={handleExportSavingsExcel}
+                    disabled={!filteredSavings.length}
+                  >
+                    Export Excel
+                  </button>
+                  <button
+                    type="button"
+                    className="report-btn secondary"
+                    onClick={handleExportSavingsWord}
+                    disabled={!filteredSavings.length}
+                  >
+                    Export Word
+                  </button>
+                  <button
+                    type="button"
+                    className="report-btn primary"
+                    onClick={handleOpenImportDialog}
+                    disabled={importingSavings}
+                  >
+                    {importingSavings ? "Mengimpor..." : "Import Excel/CSV"}
+                  </button>
+                  <input
+                    ref={importInputRef}
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    onChange={handleImportSavings}
+                    hidden
+                  />
+                </div>
+              </div>
+
+              <div className="report-summary">
+                <span>{filteredSavings.length} transaksi</span>
+                <span>Total Rp {totalSavings.toLocaleString("id-ID")}</span>
+                <span>Format import: Tanggal, Nama, Tipe, Jumlah</span>
+              </div>
               {filteredSavings.length === 0 ? (
                 <p className="empty-state">Tidak ada data tabungan bulan {currentMonth}</p>
               ) : (
@@ -352,22 +549,22 @@ export default function History({ user, onNavigate }) {
 
                         return (
                           <tr key={saving.id}>
-                            <td>
+                            <td data-label="Tanggal & Waktu">
                               <div className="datetime-cell">
                                 <div className="date">{dateStr}</div>
                                 <div className="time">{timeStr}</div>
                               </div>
                             </td>
-                            <td>{saving.userName}</td>
-                            <td>
+                            <td data-label="Nama">{saving.userName}</td>
+                            <td data-label="Tipe">
                               <span className={`badge ${saving.role}`}>
                                 {saving.role === "cowo" ? "👨 Cowok" : "👩 Cewe"}
                               </span>
                             </td>
-                            <td className="amount-cell">
+                            <td data-label="Jumlah" className="amount-cell">
                               <span className="amount positive">+Rp {saving.amount.toLocaleString("id-ID")}</span>
                             </td>
-                            <td>
+                            <td data-label="Aksi">
                               <button
                                 onClick={() => handleDeleteSaving(saving.id)}
                                 className="delete-btn"
@@ -522,23 +719,23 @@ export default function History({ user, onNavigate }) {
 
                         return (
                           <tr key={expense.id}>
-                            <td>
+                            <td data-label="Tanggal & Waktu">
                               <div className="datetime-cell">
                                 <div className="date">{dateStr}</div>
                                 <div className="time">{timeStr}</div>
                               </div>
                             </td>
-                            <td className="description-cell">{expense.description}</td>
-                            <td>
+                            <td data-label="Deskripsi" className="description-cell">{expense.description}</td>
+                            <td data-label="Kategori">
                               <span className="category-badge">
                                 {categoryEmoji[expense.category]} {categoryLabel[expense.category]}
                               </span>
                             </td>
-                            <td>{expense.userName}</td>
-                            <td className="amount-cell">
+                            <td data-label="Nama">{expense.userName}</td>
+                            <td data-label="Jumlah" className="amount-cell">
                               <span className="amount negative">-Rp {expense.amount.toLocaleString("id-ID")}</span>
                             </td>
-                            <td>
+                            <td data-label="Aksi">
                               <button
                                 onClick={() => handleDeleteExpense(expense.id)}
                                 className="delete-btn"

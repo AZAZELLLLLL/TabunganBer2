@@ -354,6 +354,83 @@ body {
   margin-bottom: 15px;
 }
 
+.data-section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.report-note {
+  color: #8B6F9E;
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 6px 0 0;
+  max-width: 620px;
+}
+
+.report-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.report-btn {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 12px;
+  transition: all 0.3s ease;
+}
+
+.report-btn.primary {
+  background: linear-gradient(135deg, #D4869B, #8B6F9E);
+  color: white;
+  box-shadow: 0 8px 18px rgba(139, 111, 158, 0.2);
+}
+
+.report-btn.secondary {
+  background: #FFF3F7;
+  color: #D4869B;
+  border: 1px solid #E8B8C8;
+}
+
+.report-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.report-btn.primary:hover:not(:disabled) {
+  box-shadow: 0 12px 22px rgba(139, 111, 158, 0.28);
+}
+
+.report-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.report-summary {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.report-summary span {
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: #FFF8F0;
+  border: 1px solid #F0D7E2;
+  color: #6E5A72;
+  font-size: 11px;
+  font-weight: 600;
+}
+
 /* Table */
 .table-wrapper {
   overflow-x: auto;
@@ -544,12 +621,6 @@ body {
   .data-table td {
     padding: 8px;
   }
-
-  /* Hide some columns on tablet */
-  .data-table th:nth-child(4),
-  .data-table td:nth-child(4) {
-    display: none;
-  }
 }
 
 @media (max-width: 500px) {
@@ -654,6 +725,23 @@ body {
   .data-section h3 {
     font-size: 14px;
     margin-bottom: 10px;
+  }
+
+  .data-section-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .report-actions {
+    width: 100%;
+  }
+
+  .report-btn {
+    flex: 1 1 100%;
+  }
+
+  .report-summary {
+    flex-direction: column;
   }
 
   /* Mobile: Convert table to card view */

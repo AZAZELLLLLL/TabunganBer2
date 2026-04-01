@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import EditProfile from "./EditProfile";
 import "./Menu.css";
 
@@ -23,6 +23,35 @@ export default function Menu({ user, onNavigate, onLogout }) {
   // ✅ EDIT PROFILE STATES - IMPORTANT!
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [currentUser, setCurrentUser] = useState(user);
+  const [installPromptEvent, setInstallPromptEvent] = useState(null);
+  const [isInstalled, setIsInstalled] = useState(() => {
+    if (typeof window === "undefined") return false;
+
+    return (
+      window.matchMedia("(display-mode: standalone)").matches ||
+      window.navigator.standalone === true
+    );
+  });
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (event) => {
+      event.preventDefault();
+      setInstallPromptEvent(event);
+    };
+
+    const handleInstalled = () => {
+      setIsInstalled(true);
+      setInstallPromptEvent(null);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleInstalled);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleInstalled);
+    };
+  }, []);
 
   // Base menu items (visible for both owner & viewer)
   const baseMenuItems = [
@@ -61,6 +90,13 @@ export default function Menu({ user, onNavigate, onLogout }) {
       description: "Analisis keuangan real-time",
       color: "stats",
     },
+    {
+      id: "calendar",
+      emoji: "📅",
+      label: "Kalender",
+      description: "Lihat kalender tabungan dan hari libur",
+      color: "calendar",
+    },
   ];
 
   // Owner-only menu items
@@ -83,6 +119,27 @@ export default function Menu({ user, onNavigate, onLogout }) {
   const handleEditProfileSave = (updatedUser) => {
     console.log("✅ Profile updated:", updatedUser);
     setCurrentUser(updatedUser);
+  };
+
+  const handleInstallApp = async () => {
+    if (isInstalled) {
+      alert("Aplikasi ini sudah terpasang di perangkatmu.");
+      return;
+    }
+
+    if (!installPromptEvent) {
+      alert(
+        "Kalau tombol install belum muncul, buka aplikasi ini dari browser HP lalu pilih menu browser > Tambahkan ke layar utama."
+      );
+      return;
+    }
+
+    installPromptEvent.prompt();
+    const { outcome } = await installPromptEvent.userChoice;
+
+    if (outcome === "accepted") {
+      setInstallPromptEvent(null);
+    }
   };
 
   return (
@@ -157,9 +214,25 @@ export default function Menu({ user, onNavigate, onLogout }) {
 
       {/* Footer */}
       <footer className="menu-footer">
-        <button onClick={onLogout} className="menu-logout-btn">
-          🚪 Logout
-        </button>
+        <div className="menu-footer-inner">
+          {!isInstalled && (
+            <div className="menu-install-box">
+              <div>
+                <p className="menu-install-title">Pasang aplikasi di layar utama</p>
+                <p className="menu-install-desc">
+                  Supaya lebih gampang dibuka dari HP tanpa harus masuk lewat link terus.
+                </p>
+              </div>
+              <button onClick={handleInstallApp} className="menu-install-btn">
+                {installPromptEvent ? "Install Aplikasi" : "Tambah ke Layar Utama"}
+              </button>
+            </div>
+          )}
+
+          <button onClick={onLogout} className="menu-logout-btn">
+            🚪 Logout
+          </button>
+        </div>
       </footer>
 
       {/* ✅ EDIT PROFILE MODAL - CONDITIONAL RENDERING */}
