@@ -15,8 +15,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // ← NEW: Define owner email (TETAPKAN DI SINI!)
-export const OWNER_EMAIL = "wm380551@gmail.com"; // ← OWNER EMAIL!
-// export const OWNER_EMAIL = "yudaelfinjodi@gmail.com"; // ← OWNER EMAIL!
+// export const OWNER_EMAIL = "wm380551@gmail.com"; // ← OWNER EMAIL!
+export const OWNER_EMAIL = "yudaelfinjodi@gmail.com"; // ← OWNER EMAIL!
 
 // Export auth, googleProvider, dan db
 export const auth = getAuth(app);

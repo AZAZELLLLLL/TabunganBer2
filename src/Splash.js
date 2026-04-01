@@ -35,7 +35,7 @@ export default function Splash({ onComplete }) {
 
   {/* Logo & Title */}
           <div className="splash-logo">
-            <img src="/logo_nobg.pn" alt="Tabungan Berdua" className="logo-image" />
+            <img src="/logo_nobg.png" alt="Tabungan Berdua" className="logo-image" />
           </div>
 
           <h1 className="splash-brand">Yubul</h1>
