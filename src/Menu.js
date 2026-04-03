@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from "react";
 import EditProfile from "./EditProfile";
+import {
+  clearInstallPromptEvent,
+  getInstallPromptState,
+  subscribeInstallPrompt,
+} from "./installPrompt";
 import "./Menu.css";
 
 /**
@@ -23,35 +28,29 @@ export default function Menu({ user, onNavigate, onLogout }) {
   // ✅ EDIT PROFILE STATES - IMPORTANT!
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [currentUser, setCurrentUser] = useState(user);
-  const [installPromptEvent, setInstallPromptEvent] = useState(null);
-  const [isInstalled, setIsInstalled] = useState(() => {
-    if (typeof window === "undefined") return false;
-
-    return (
-      window.matchMedia("(display-mode: standalone)").matches ||
-      window.navigator.standalone === true
-    );
-  });
+  const initialInstallState = getInstallPromptState();
+  const [installPromptEvent, setInstallPromptEvent] = useState(
+    initialInstallState.promptEvent
+  );
+  const [isInstalled, setIsInstalled] = useState(initialInstallState.isInstalled);
+  const [showInstallHelp, setShowInstallHelp] = useState(false);
 
   useEffect(() => {
-    const handleBeforeInstallPrompt = (event) => {
-      event.preventDefault();
-      setInstallPromptEvent(event);
-    };
+    setCurrentUser(user);
+  }, [user]);
 
-    const handleInstalled = () => {
-      setIsInstalled(true);
-      setInstallPromptEvent(null);
-    };
-
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-    window.addEventListener("appinstalled", handleInstalled);
-
-    return () => {
-      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-      window.removeEventListener("appinstalled", handleInstalled);
-    };
+  useEffect(() => {
+    return subscribeInstallPrompt(({ promptEvent, isInstalled: nextInstalled }) => {
+      setInstallPromptEvent(promptEvent);
+      setIsInstalled(nextInstalled);
+    });
   }, []);
+
+  useEffect(() => {
+    if (installPromptEvent || isInstalled) {
+      setShowInstallHelp(false);
+    }
+  }, [installPromptEvent, isInstalled]);
 
   // Base menu items (visible for both owner & viewer)
   const baseMenuItems = [
@@ -128,19 +127,21 @@ export default function Menu({ user, onNavigate, onLogout }) {
     }
 
     if (!installPromptEvent) {
-      alert(
-        "Kalau tombol install belum muncul, buka aplikasi ini dari browser HP lalu pilih menu browser > Tambahkan ke layar utama."
-      );
+      setShowInstallHelp(true);
       return;
     }
 
     installPromptEvent.prompt();
     const { outcome } = await installPromptEvent.userChoice;
+    clearInstallPromptEvent();
 
     if (outcome === "accepted") {
-      setInstallPromptEvent(null);
+      setIsInstalled(true);
+      setShowInstallHelp(false);
     }
   };
+
+  const installHelp = getManualInstallHelp();
 
   return (
     <div className="menu-page">
@@ -220,12 +221,26 @@ export default function Menu({ user, onNavigate, onLogout }) {
               <div>
                 <p className="menu-install-title">Pasang aplikasi di layar utama</p>
                 <p className="menu-install-desc">
-                  Supaya lebih gampang dibuka dari HP tanpa harus masuk lewat link terus.
+                  {installPromptEvent
+                    ? "Browser kamu sudah siap. Tinggal tekan tombol install biar Yubul muncul seperti aplikasi biasa."
+                    : "Kalau browser belum kasih pop-up install, kita tetap sediakan langkah manual yang rapi buat HP kamu."}
                 </p>
               </div>
               <button onClick={handleInstallApp} className="menu-install-btn">
-                {installPromptEvent ? "Install Aplikasi" : "Tambah ke Layar Utama"}
+                {installPromptEvent ? "Install Aplikasi" : "Lihat Cara Install"}
               </button>
+            </div>
+          )}
+
+          {!isInstalled && showInstallHelp && !installPromptEvent && (
+            <div className="menu-install-help">
+              <p className="menu-install-help-title">{installHelp.title}</p>
+              <p className="menu-install-help-desc">{installHelp.description}</p>
+              <div className="menu-install-steps">
+                {installHelp.steps.map((step, index) => (
+                  <span key={step}>{index + 1}. {step}</span>
+                ))}
+              </div>
             </div>
           )}
 
@@ -248,6 +263,49 @@ export default function Menu({ user, onNavigate, onLogout }) {
       )}
     </div>
   );
+}
+
+function getManualInstallHelp() {
+  const userAgent = navigator.userAgent || "";
+  const isIOS = /iPhone|iPad|iPod/i.test(userAgent);
+  const isAndroid = /Android/i.test(userAgent);
+
+  if (isIOS) {
+    return {
+      title: "Cara pasang di iPhone / iPad",
+      description: "Safari belum punya tombol install seperti Android, jadi pemasangannya lewat menu Share.",
+      steps: [
+        "Buka aplikasi ini di Safari",
+        "Tekan tombol Share di bawah layar",
+        "Pilih Add to Home Screen",
+        "Tekan Add supaya ikon Yubul muncul di layar utama",
+      ],
+    };
+  }
+
+  if (isAndroid) {
+    return {
+      title: "Cara pasang di Android",
+      description: "Kalau pop-up install belum muncul otomatis, browser Android tetap bisa memasang aplikasi secara manual.",
+      steps: [
+        "Buka menu titik tiga browser",
+        "Pilih Install app atau Tambahkan ke layar utama",
+        "Konfirmasi instalasi",
+        "Setelah selesai, buka Yubul dari ikon di home screen",
+      ],
+    };
+  }
+
+  return {
+    title: "Cara pasang aplikasi",
+    description: "Browser ini belum mengirim pop-up install otomatis. Biasanya Chrome atau Edge di HP paling stabil untuk PWA.",
+    steps: [
+      "Buka aplikasi ini dari Chrome atau Edge di HP",
+      "Masuk ke menu browser",
+      "Pilih Install app atau Tambahkan ke layar utama",
+      "Buka Yubul dari ikon yang sudah dibuat",
+    ],
+  };
 }
 
 /**

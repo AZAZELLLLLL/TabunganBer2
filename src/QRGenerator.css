@@ -97,6 +97,12 @@
   display: block;
 }
 
+.qr-display canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
 .group-id-badge {
   background: #F8F0FF;
   border: 1px solid #E8D4F8;
@@ -121,6 +127,51 @@
   font-weight: 700;
   word-break: break-all;
   font-family: monospace;
+}
+
+.qr-share-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.btn-copy {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #D4869B, #8B6F9E);
+  color: white;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-copy.secondary {
+  background: #F8F0FF;
+  border: 1px solid #D4A5E8;
+  color: #8B6F9E;
+}
+
+.btn-copy:hover {
+  transform: translateY(-2px);
+}
+
+.qr-manual-note {
+  margin: 0;
+  max-width: 420px;
+  color: #6c5874;
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.qr-copy-feedback {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #27AE60;
 }
 
 /* ===== PENDING BADGE ===== */
@@ -388,6 +439,11 @@ button:disabled {
 
   .request-actions {
     flex-direction: row;
+  }
+
+  .qr-share-actions {
+    flex-direction: column;
+    width: 100%;
   }
 }
 

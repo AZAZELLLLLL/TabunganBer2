@@ -13,14 +13,30 @@
    PAGE LAYOUT
    ============================================ */
 
+.edit-profile-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(25, 16, 35, 0.48);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
 .edit-profile-page {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  width: min(720px, 100%);
+  max-height: 92vh;
+  background: linear-gradient(180deg, #f8f2fb 0%, #f8fafc 100%);
   display: flex;
   flex-direction: column;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
     sans-serif;
   padding: 0;
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: 0 24px 80px rgba(37, 24, 49, 0.28);
 }
 
 /* ============================================
@@ -468,6 +484,47 @@
   font-style: italic;
 }
 
+.edit-gender-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.edit-gender-btn {
+  flex: 1;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 2px solid #e6ddee;
+  background: white;
+  color: #6b5874;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.edit-gender-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(118, 75, 162, 0.12);
+}
+
+.edit-gender-btn.is-active.cowo {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  border-color: #2563eb;
+  color: white;
+}
+
+.edit-gender-btn.is-active.cewe {
+  background: linear-gradient(135deg, #ec4899, #db2777);
+  border-color: #db2777;
+  color: white;
+}
+
+.edit-gender-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* ============================================
    ACCOUNT INFO SECTION
    ============================================ */
@@ -610,9 +667,25 @@
   .avatar-status {
     display: none;
   }
+
+  .edit-gender-actions {
+    flex-direction: column;
+  }
 }
 
 @media (max-width: 480px) {
+  .edit-profile-modal-overlay {
+    padding: 0;
+    align-items: stretch;
+    justify-content: stretch;
+  }
+
+  .edit-profile-page {
+    width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
   .edit-profile-header {
     padding: 12px;
   }

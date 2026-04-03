@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import { auth, db, OWNER_EMAIL } from "./firebase";
+import { ensureOwnerGroup } from "./groupUtils";
 import Splash from "./Splash";
 import Login from "./login";
 import Menu from "./Menu";
@@ -30,58 +31,94 @@ function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  // ✅ FIX: Restore full user session from Firestore on page refresh
-  // Previously: hanya console.log waktu user terdeteksi, tidak setUser()
-  // Sekarang: fetch data Firestore lalu rebuild user object lengkap
+  // Restore session and keep user profile synced in real-time.
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    let unsubscribeUserDoc = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
+      if (unsubscribeUserDoc) {
+        unsubscribeUserDoc();
+        unsubscribeUserDoc = null;
+      }
+
       if (firebaseUser) {
-        try {
-          const userRef = doc(db, "users", firebaseUser.uid);
-          const userDoc = await getDoc(userRef);
+        setLoading(true);
 
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            const isOwner =
-              firebaseUser.email?.toLowerCase() === OWNER_EMAIL.toLowerCase();
-
-            const fullUser = {
-              uid: firebaseUser.uid,
-              name: userData.name || firebaseUser.displayName || "",
-              email: firebaseUser.email,
-              photo: userData.photo || firebaseUser.photoURL || "",
-              gender: userData.gender || "",
-              groupId: userData.groupId || null,
-              role: isOwner ? "owner" : "viewer",
-              isOwner: isOwner,
-              approvalStatus: userData.approvalStatus || null,
-            };
-
-            if (isOwner) {
-              // Owner langsung masuk tanpa cek approval
-              setUser(fullUser);
-            } else if (userData.approvalStatus === "approved") {
-              // Viewer yang sudah di-approve masuk
-              setUser(fullUser);
-            } else {
-              // Viewer belum di-approve → ke login flow
+        const userRef = doc(db, "users", firebaseUser.uid);
+        unsubscribeUserDoc = onSnapshot(
+          userRef,
+          async (userDoc) => {
+            if (!userDoc.exists()) {
               setUser(null);
+              setLoading(false);
+              return;
             }
-          } else {
-            // Belum ada data di Firestore (belum pernah isi form login)
+
+            try {
+              let userData = userDoc.data();
+              const isOwner =
+                firebaseUser.email?.toLowerCase() === OWNER_EMAIL.toLowerCase();
+
+              if (isOwner) {
+                const ensuredGroup = await ensureOwnerGroup({
+                  uid: firebaseUser.uid,
+                  email: firebaseUser.email || "",
+                  name: userData.name || firebaseUser.displayName || "",
+                  photo: userData.photo || firebaseUser.photoURL || "",
+                  groupId: userData.groupId || null,
+                });
+
+                if (ensuredGroup?.groupId && ensuredGroup.groupId !== userData.groupId) {
+                  userData = {
+                    ...userData,
+                    groupId: ensuredGroup.groupId,
+                  };
+                }
+              }
+
+              const fullUser = {
+                uid: firebaseUser.uid,
+                name: userData.name || firebaseUser.displayName || "",
+                email: firebaseUser.email,
+                photo: userData.photo || firebaseUser.photoURL || "",
+                googlePhoto: firebaseUser.photoURL || "",
+                gender: userData.gender || "",
+                groupId: userData.groupId || null,
+                role: isOwner ? "owner" : "viewer",
+                isOwner,
+                approvalStatus: userData.approvalStatus || null,
+              };
+
+              if (isOwner || userData.approvalStatus === "approved") {
+                setUser(fullUser);
+              } else {
+                setUser(null);
+              }
+            } catch (error) {
+              console.error("Error restoring session:", error);
+              setUser(null);
+            } finally {
+              setLoading(false);
+            }
+          },
+          (error) => {
+            console.error("User snapshot error:", error);
             setUser(null);
+            setLoading(false);
           }
-        } catch (error) {
-          console.error("Error restoring session:", error);
-          setUser(null);
-        }
+        );
       } else {
         setUser(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return unsubscribe;
+    return () => {
+      if (unsubscribeUserDoc) {
+        unsubscribeUserDoc();
+      }
+      unsubscribeAuth();
+    };
   }, []);
 
   // Navigate to page with transition

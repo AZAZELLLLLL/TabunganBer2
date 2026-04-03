@@ -29,6 +29,7 @@ export default function LoginWithGender({ setUser }) {
   const [showWaitingApproval, setShowWaitingApproval] = useState(false);
   const [showRejected, setShowRejected] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [lastDeviceInfo, setLastDeviceInfo] = useState(null);
 
   // ✅ Select Google Account
   const handleSelectGoogle = async () => {
@@ -92,7 +93,8 @@ export default function LoginWithGender({ setUser }) {
             uid: googleUser.uid,
             name: fullName,
             email: googleUser.email,
-            photo: googleUser.photoURL,
+            photo: userData.photo || googleUser.photoURL,
+            googlePhoto: googleUser.photoURL,
             gender: gender,
             groupId: userData.groupId,
             role: "owner",
@@ -106,7 +108,8 @@ export default function LoginWithGender({ setUser }) {
               uid: googleUser.uid,
               name: fullName,
               email: googleUser.email,
-              photo: googleUser.photoURL,
+              photo: userData.photo || googleUser.photoURL,
+              googlePhoto: googleUser.photoURL,
               gender: gender,
               groupId: userData.groupId,
               role: "viewer",
@@ -142,6 +145,7 @@ export default function LoginWithGender({ setUser }) {
             name: fullName,
             email: googleUser.email,
             photo: googleUser.photoURL,
+            googlePhoto: googleUser.photoURL,
             gender: gender,
             role: "owner",
             isOwner: true,
@@ -184,6 +188,7 @@ export default function LoginWithGender({ setUser }) {
         updatedAt: new Date(),
       });
 
+      setLastDeviceInfo(deviceInfo);
       setShowQRScan(false);
       setShowWaitingApproval(true);
     } catch (error) {
@@ -203,7 +208,8 @@ export default function LoginWithGender({ setUser }) {
           uid: googleUser.uid,
           name: fullName,
           email: googleUser.email,
-          photo: googleUser.photoURL,
+          photo: userData.photo || googleUser.photoURL,
+          googlePhoto: googleUser.photoURL,
           gender: gender,
           groupId: userData.groupId,
           role: "viewer",
@@ -251,6 +257,7 @@ export default function LoginWithGender({ setUser }) {
           photo: googleUser.photoURL,
           gender: gender,
         }}
+        deviceInfo={lastDeviceInfo}
         onApproved={handleApprovalApproved}
         onRejected={handleApprovalRejected}
       />

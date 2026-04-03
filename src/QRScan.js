@@ -26,6 +26,7 @@ export default function QRScan({ user, onComplete }) {
   const [scanResult, setScanResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [manualGroupId, setManualGroupId] = useState("");
   
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -93,6 +94,75 @@ export default function QRScan({ user, onComplete }) {
     }
   };
 
+  const extractGroupId = (rawValue) => {
+    const value = String(rawValue || "").trim();
+    if (!value) return "";
+    if (value.startsWith("yubul://group/")) {
+      return value.split("/").pop()?.trim() || "";
+    }
+
+    return value;
+  };
+
+  const submitJoinRequest = async (rawGroupValue) => {
+    const extractedGroupId = extractGroupId(rawGroupValue).toUpperCase();
+
+    if (!extractedGroupId) {
+      throw new Error("Group ID belum diisi.");
+    }
+
+    console.log("Extracted groupId:", extractedGroupId);
+
+    // Validate group exists
+    const groupsRef = collection(db, "groups");
+    const q = query(groupsRef, where("groupId", "==", extractedGroupId));
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+      throw new Error("Group tidak ditemukan. Cek lagi QR atau Group ID yang dimasukkan.");
+    }
+
+    const groupDoc = querySnapshot.docs[0];
+    const groupData = groupDoc.data();
+    console.log("Group found:", groupData);
+
+    // ← COLLECT DEVICE INFO
+    console.log("Collecting device information...");
+    const deviceInfo = getDeviceInfo();
+    console.log("Device info:", deviceInfo);
+
+    const pendingRequest = {
+      uid: user.uid,
+      name: user.name,
+      email: user.email,
+      photo: user.photo,
+      gender: user.gender || "",
+      scannedAt: new Date(),
+      status: "pending",
+      deviceInfo,
+    };
+
+    const existingRequests = Array.isArray(groupData.pendingApprovals)
+      ? groupData.pendingApprovals
+      : [];
+    const nextApprovals = existingRequests.some((request) => request.uid === user.uid)
+      ? existingRequests.map((request) =>
+          request.uid === user.uid ? { ...request, ...pendingRequest } : request
+        )
+      : [...existingRequests, pendingRequest];
+
+    // Send approval request to owner
+    await updateDoc(doc(db, "groups", groupDoc.id), {
+      pendingApprovals: nextApprovals,
+      updatedAt: new Date(),
+    });
+
+    console.log("✅ Approval request sent to owner!");
+
+    // Callback to parent with groupId & device info
+    onComplete(extractedGroupId, deviceInfo);
+  };
+
   // Process QR scan result
   const handleConfirmScan = async () => {
     if (!scanResult) {
@@ -102,53 +172,24 @@ export default function QRScan({ user, onComplete }) {
 
     setLoading(true);
     try {
-      // Extract groupId dari QR data
-      const extractedGroupId = scanResult.split("/").pop();
-      console.log("Extracted groupId:", extractedGroupId);
-
-      // Validate group exists
-      const groupsRef = collection(db, "groups");
-      const q = query(groupsRef, where("groupId", "==", extractedGroupId));
-      const querySnapshot = await getDocs(q);
-
-      if (querySnapshot.empty) {
-        throw new Error("Group not found! QR might be invalid.");
-      }
-
-      const groupDoc = querySnapshot.docs[0];
-      const groupData = groupDoc.data();
-      console.log("Group found:", groupData);
-
-      // ← COLLECT DEVICE INFO
-      console.log("Collecting device information...");
-      const deviceInfo = getDeviceInfo();
-      console.log("Device info:", deviceInfo);
-
-      // Create approval request with device info
-      const pendingRequest = {
-        uid: user.uid,
-        name: user.name,
-        email: user.email,
-        photo: user.photo,
-        scannedAt: new Date(),
-        status: "pending",
-        deviceInfo: deviceInfo, // ← INCLUDE DEVICE INFO!
-      };
-
-      // Send approval request to owner
-      await updateDoc(doc(db, "groups", groupDoc.id), {
-        pendingApprovals: [...(groupData.pendingApprovals || []), pendingRequest],
-        updatedAt: new Date(),
-      });
-
-      console.log("✅ Approval request sent to owner!");
-
-      // Callback to parent with groupId & device info
-      onComplete(extractedGroupId, deviceInfo);
-
+      await submitJoinRequest(scanResult);
       setLoading(false);
     } catch (err) {
       console.error("Error:", err);
+      setError("❌ Error: " + err.message);
+      setLoading(false);
+    }
+  };
+
+  const handleManualJoin = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      await submitJoinRequest(manualGroupId);
+      setLoading(false);
+    } catch (err) {
+      console.error("Manual join error:", err);
       setError("❌ Error: " + err.message);
       setLoading(false);
     }
@@ -261,6 +302,26 @@ export default function QRScan({ user, onComplete }) {
         >
           {loading ? "Opening camera..." : "📷 Open Camera"}
         </button>
+
+        <div className="manual-join-box">
+          <h3>Atau masuk pakai Group ID</h3>
+          <p>Kalau QR tidak muncul atau kamera susah scan, minta owner kirim Group ID.</p>
+          <input
+            type="text"
+            value={manualGroupId}
+            onChange={(event) => setManualGroupId(event.target.value.toUpperCase())}
+            placeholder="Contoh: GROUP-YB-20260401-ABC123"
+            className="manual-group-input"
+            disabled={loading}
+          />
+          <button
+            onClick={handleManualJoin}
+            disabled={loading || !manualGroupId.trim()}
+            className="btn-primary manual-join-btn"
+          >
+            {loading ? "Mengirim..." : "Masuk dengan Group ID"}
+          </button>
+        </div>
 
         <div className="qrscan-steps">
           <h3>📋 How it works:</h3>

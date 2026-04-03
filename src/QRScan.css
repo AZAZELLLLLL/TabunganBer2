@@ -231,6 +231,51 @@ button:disabled {
   cursor: not-allowed;
 }
 
+.manual-join-box {
+  margin-top: 18px;
+  padding: 18px;
+  border-radius: 14px;
+  background: #f7f1fb;
+  border: 1px solid #e4d6f1;
+}
+
+.manual-join-box h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  color: #333;
+}
+
+.manual-join-box p {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: #666;
+  line-height: 1.6;
+}
+
+.manual-group-input {
+  width: 100%;
+  padding: 13px 14px;
+  border: 2px solid #d8c7ea;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+}
+
+.manual-group-input:focus {
+  outline: none;
+  border-color: #764ba2;
+  box-shadow: 0 0 0 3px rgba(118, 75, 162, 0.14);
+}
+
+.manual-join-btn {
+  margin-top: 0;
+ }
+
 /* STEPS */
 .qrscan-steps {
   background: #f5f5f5;

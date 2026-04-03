@@ -3,8 +3,11 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import { setupInstallPromptListeners } from './installPrompt';
 
-if ("serviceWorker" in navigator) {
+setupInstallPromptListeners();
+
+if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker
       .register(`${process.env.PUBLIC_URL}/service-worker.js`)
