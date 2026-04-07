@@ -11,16 +11,40 @@ import {
 import { db } from "./firebase";
 import {
   exportSavingsToExcel,
+  exportSavingsToPdf,
   exportSavingsToWord,
   parseSavingsImportFile,
 } from "./reportUtils";
 import "./History.css";
 
+const REPORT_MONTH_STORAGE_KEY = "historyReportMonth";
+
+function getInitialReportMonth() {
+  if (typeof window === "undefined") {
+    return new Date();
+  }
+
+  const storedValue = window.localStorage.getItem(REPORT_MONTH_STORAGE_KEY);
+  if (!storedValue) {
+    return new Date();
+  }
+
+  const matchedMonth = storedValue.match(/^(\d{4})-(\d{2})$/);
+  if (!matchedMonth) {
+    window.localStorage.removeItem(REPORT_MONTH_STORAGE_KEY);
+    return new Date();
+  }
+
+  const initialMonth = new Date(Number(matchedMonth[1]), Number(matchedMonth[2]) - 1, 1);
+  window.localStorage.removeItem(REPORT_MONTH_STORAGE_KEY);
+  return Number.isNaN(initialMonth.getTime()) ? new Date() : initialMonth;
+}
+
 export default function History({ user, onNavigate }) {
   const [savings, setSavings] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [activeTab, setActiveTab] = useState("savings");
-  const [filterMonth, setFilterMonth] = useState(new Date());
+  const [filterMonth, setFilterMonth] = useState(() => getInitialReportMonth());
   const [filterPerson, setFilterPerson] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -213,6 +237,24 @@ export default function History({ user, onNavigate }) {
       monthLabel: currentMonth,
       summary: savingsReportSummary,
     });
+  };
+
+  const handleExportSavingsPdf = () => {
+    if (!filteredSavings.length) {
+      alert(`Belum ada data tabungan untuk bulan ${currentMonth}.`);
+      return;
+    }
+
+    try {
+      exportSavingsToPdf({
+        savings: filteredSavings,
+        monthLabel: currentMonth,
+        summary: savingsReportSummary,
+      });
+    } catch (error) {
+      console.error("Export PDF error:", error);
+      alert(`Gagal membuka export PDF: ${error.message}`);
+    }
   };
 
   const handleOpenImportDialog = () => {
@@ -472,8 +514,9 @@ export default function History({ user, onNavigate }) {
                 <div>
                   <h3>📊 Detail Tabungan</h3>
                   <p className="report-note">
-                    Export laporan bulan {currentMonth} ke Excel atau Word, lalu import lagi
-                    dari file Excel/CSV kalau mau menambah data lebih cepat.
+                    Export laporan bulan {currentMonth} ke Excel, PDF, atau Word. Khusus PDF,
+                    browser akan membuka tampilan siap print supaya bisa langsung disimpan sebagai
+                    file PDF.
                   </p>
                 </div>
 
@@ -485,6 +528,14 @@ export default function History({ user, onNavigate }) {
                     disabled={!filteredSavings.length}
                   >
                     Export Excel
+                  </button>
+                  <button
+                    type="button"
+                    className="report-btn secondary"
+                    onClick={handleExportSavingsPdf}
+                    disabled={!filteredSavings.length}
+                  >
+                    Export PDF
                   </button>
                   <button
                     type="button"
@@ -515,6 +566,7 @@ export default function History({ user, onNavigate }) {
               <div className="report-summary">
                 <span>{filteredSavings.length} transaksi</span>
                 <span>Total Rp {totalSavings.toLocaleString("id-ID")}</span>
+                <span>Export: Excel, PDF, Word</span>
                 <span>Format import: Tanggal, Nama, Tipe, Jumlah</span>
               </div>
               {filteredSavings.length === 0 ? (

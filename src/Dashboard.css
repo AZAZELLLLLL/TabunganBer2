@@ -199,6 +199,84 @@ body {
   font-weight: 700;
 }
 
+.month-summary-lead {
+  color: #7b6884;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: -6px 0 16px;
+}
+
+.month-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.month-summary-card {
+  min-height: 150px;
+}
+
+.month-summary-card.primary {
+  border-left-color: #27AE60;
+  background: linear-gradient(135deg, rgba(39, 174, 96, 0.08), rgba(255, 255, 255, 0.96));
+}
+
+.month-summary-card.report-card {
+  border-left-color: #8B6F9E;
+}
+
+.month-summary-label {
+  margin: 0;
+}
+
+.month-summary-value {
+  color: #5A4A5C;
+}
+
+.month-summary-value.positive {
+  color: #27AE60;
+}
+
+.month-summary-meta {
+  color: #8B6F9E;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.month-report-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 6px 0;
+}
+
+.month-report-btn {
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 12px 14px;
+  transition: all 0.3s ease;
+}
+
+.month-report-btn.primary {
+  background: linear-gradient(135deg, #D4869B, #8B6F9E);
+  color: white;
+  box-shadow: 0 10px 24px rgba(139, 111, 158, 0.2);
+}
+
+.month-report-btn.secondary {
+  background: #FFF4F7;
+  color: #8B6F9E;
+  border: 1px solid #E4C7D4;
+}
+
+.month-report-btn:hover {
+  transform: translateY(-2px);
+}
+
 /* ===== DATE PICKER SECTION ===== */
 .savings-date-section {
   margin-bottom: 20px;
@@ -550,6 +628,14 @@ body {
     padding: 12px;
   }
 
+  .month-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .month-report-btn {
+    width: 100%;
+  }
+
   .savings-form-grid {
     gap: 20px;
   }
@@ -660,6 +746,14 @@ body {
   .section > div > div {
     padding: 10px;
     font-size: 12px;
+  }
+
+  .month-summary-lead {
+    font-size: 12px;
+  }
+
+  .month-summary-meta {
+    font-size: 11px;
   }
 
   .date-input {

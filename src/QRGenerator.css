@@ -324,6 +324,7 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: 12px;
+  justify-content: space-between;
   transition: all 0.3s ease;
 }
 
@@ -340,6 +341,30 @@ button:disabled {
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
+}
+
+.approved-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.btn-logout-viewer {
+  border: 1px solid #E6B5C4;
+  background: #FFF4F7;
+  color: #B04D6D;
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-logout-viewer:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 12px rgba(176, 77, 109, 0.18);
 }
 
 /* ===== EMPTY STATE ===== */
@@ -464,5 +489,17 @@ button:disabled {
 
   .qr-section {
     padding: 16px;
+  }
+
+  .approved-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .approved-actions {
+    width: 100%;
+    margin-left: 0;
+    flex-direction: column;
+    align-items: stretch;
   }
 }

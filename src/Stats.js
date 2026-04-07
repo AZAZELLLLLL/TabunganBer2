@@ -13,13 +13,44 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   PieChart,
   Pie,
   Cell,
 } from "recharts";
 import "./Stats.css";
+
+function toDateObject(value) {
+  if (!value) return null;
+  if (value?.toDate) return value.toDate();
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function toDateKey(value) {
+  const date = toDateObject(value);
+  if (!date) return "";
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatCompactCurrency(value) {
+  const amount = Number(value || 0);
+
+  if (amount >= 1000000) {
+    return `${(amount / 1000000).toFixed(amount % 1000000 === 0 ? 0 : 1)} jt`;
+  }
+
+  if (amount >= 1000) {
+    return `${(amount / 1000).toFixed(amount % 1000 === 0 ? 0 : 1)} rb`;
+  }
+
+  return amount.toString();
+}
 
 export default function Stats({ user, onNavigate }) {
   const [savings, setSavings] = useState([]);
@@ -70,10 +101,12 @@ export default function Stats({ user, onNavigate }) {
     // Initialize last 12 months
     for (let i = 11; i >= 0; i--) {
       const date = new Date();
+      date.setDate(1);
       date.setMonth(date.getMonth() - i);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       months[monthKey] = {
-        month: date.toLocaleDateString("id-ID", { month: "short", year: "numeric" }),
+        month: date.toLocaleDateString("id-ID", { month: "long", year: "numeric" }),
+        shortMonth: date.toLocaleDateString("id-ID", { month: "short" }),
         income: 0,
         expense: 0,
       };
@@ -81,7 +114,8 @@ export default function Stats({ user, onNavigate }) {
 
     // Add savings to income
     regularSavings.forEach((s) => {
-      const sDate = s.date?.toDate ? s.date.toDate() : new Date(s.date);
+      const sDate = toDateObject(s.date);
+      if (!sDate) return;
       const monthKey = `${sDate.getFullYear()}-${String(sDate.getMonth() + 1).padStart(2, '0')}`;
       if (months[monthKey]) {
         months[monthKey].income += s.amount || 0;
@@ -90,7 +124,8 @@ export default function Stats({ user, onNavigate }) {
 
     // Add expenses
     expenses.forEach((e) => {
-      const eDate = e.date?.toDate ? e.date.toDate() : new Date(e.date);
+      const eDate = toDateObject(e.date);
+      if (!eDate) return;
       const monthKey = `${eDate.getFullYear()}-${String(eDate.getMonth() + 1).padStart(2, '0')}`;
       if (months[monthKey]) {
         months[monthKey].expense += e.amount || 0;
@@ -111,24 +146,40 @@ export default function Stats({ user, onNavigate }) {
   const monthEnd = new Date(
     selectedMonth.getFullYear(),
     selectedMonth.getMonth() + 1,
+    0,
+    23,
+    59,
+    59,
+    999
+  );
+
+  const currentMonthSavings = regularSavings.filter((saving) => {
+    const savingDate = toDateObject(saving.date);
+    return savingDate && savingDate >= monthStart && savingDate <= monthEnd;
+  });
+
+  const currentMonthExpenses = expenses.filter((expense) => {
+    const expenseDate = toDateObject(expense.date);
+    return expenseDate && expenseDate >= monthStart && expenseDate <= monthEnd;
+  });
+
+  const currentMonthIncome = currentMonthSavings.reduce(
+    (sum, saving) => sum + (saving.amount || 0),
     0
   );
 
-  const currentMonthIncome = regularSavings
-    .filter((s) => {
-      const sDate = s.date?.toDate ? s.date.toDate() : new Date(s.date);
-      return sDate >= monthStart && sDate <= monthEnd;
-    })
-    .reduce((sum, s) => sum + (s.amount || 0), 0);
-
-  const currentMonthExpense = expenses
-    .filter((e) => {
-      const eDate = e.date?.toDate ? e.date.toDate() : new Date(e.date);
-      return eDate >= monthStart && eDate <= monthEnd;
-    })
-    .reduce((sum, e) => sum + (e.amount || 0), 0);
+  const currentMonthExpense = currentMonthExpenses.reduce(
+    (sum, expense) => sum + (expense.amount || 0),
+    0
+  );
 
   const currentMonthBalance = currentMonthIncome - currentMonthExpense;
+  const totalSavingDays = new Set(
+    regularSavings.map((saving) => toDateKey(saving.date)).filter(Boolean)
+  ).size;
+  const currentMonthSavingDays = new Set(
+    currentMonthSavings.map((saving) => toDateKey(saving.date)).filter(Boolean)
+  ).size;
 
   // Total all-time
   const totalIncome = regularSavings.reduce((sum, s) => sum + (s.amount || 0), 0);
@@ -169,7 +220,8 @@ export default function Stats({ user, onNavigate }) {
       value: catTotal,
       icon: categoryEmoji[cat],
     };
-  }).filter(c => c.value > 0);
+  }).filter(c => c.value > 0)
+    .sort((first, second) => second.value - first.value);
 
   // Person contribution
   const cowoIncome = regularSavings
@@ -239,7 +291,9 @@ export default function Stats({ user, onNavigate }) {
             <div className="card-info">
               <p className="card-label">Total Pemasukan</p>
               <p className="card-amount">Rp {totalIncome.toLocaleString("id-ID")}</p>
-              <p className="card-detail">{regularSavings.length} transaksi</p>
+              <p className="card-detail">
+                {regularSavings.length} transaksi | {totalSavingDays} hari menabung
+              </p>
             </div>
           </div>
 
@@ -266,20 +320,53 @@ export default function Stats({ user, onNavigate }) {
         <div className="chart-section">
           <h2>📈 Perbandingan Pemasukan vs Pengeluaran (12 Bulan Terakhir)</h2>
           <div className="chart-container">
-            <ResponsiveContainer width="100%" height={350}>
-              <BarChart data={monthlyData} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip 
-                  formatter={(value) => `Rp ${value.toLocaleString("id-ID")}`}
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={monthlyData} margin={{ top: 12, right: 12, left: -8, bottom: 4 }}>
+                <CartesianGrid stroke="#F0E6FF" strokeDasharray="3 3" vertical={false} />
+                <XAxis
+                  dataKey="shortMonth"
+                  tickLine={false}
+                  axisLine={{ stroke: "#EAD9EB" }}
+                  tickMargin={10}
+                  minTickGap={14}
+                />
+                <YAxis
+                  tickFormatter={formatCompactCurrency}
+                  tickLine={false}
+                  axisLine={false}
+                  width={48}
+                />
+                <Tooltip
+                  labelFormatter={(_, payload) => payload?.[0]?.payload?.month || ""}
+                  formatter={(value, name) => [`Rp ${value.toLocaleString("id-ID")}`, name]}
                   contentStyle={{ background: "#FFF8F0", border: "1px solid #D4869B" }}
                 />
-                <Legend />
-                <Bar dataKey="income" fill="#27AE60" name="Pemasukan" />
-                <Bar dataKey="expense" fill="#E74C3C" name="Pengeluaran" />
+                <Bar
+                  dataKey="income"
+                  fill="#27AE60"
+                  name="Pemasukan"
+                  radius={[10, 10, 0, 0]}
+                  maxBarSize={26}
+                />
+                <Bar
+                  dataKey="expense"
+                  fill="#E74C3C"
+                  name="Pengeluaran"
+                  radius={[10, 10, 0, 0]}
+                  maxBarSize={26}
+                />
               </BarChart>
             </ResponsiveContainer>
+          </div>
+          <div className="chart-legend" aria-hidden="true">
+            <span className="chart-legend-item">
+              <span className="chart-legend-dot income" />
+              Pemasukan
+            </span>
+            <span className="chart-legend-item">
+              <span className="chart-legend-dot expense" />
+              Pengeluaran
+            </span>
           </div>
         </div>
 
@@ -318,6 +405,9 @@ export default function Stats({ user, onNavigate }) {
               <div className="month-info">
                 <p className="month-label">Pemasukan {currentMonth}</p>
                 <p className="month-amount">Rp {currentMonthIncome.toLocaleString("id-ID")}</p>
+                <p className="month-detail">
+                  {currentMonthSavings.length} transaksi | {currentMonthSavingDays} hari menabung
+                </p>
               </div>
             </div>
 
@@ -326,6 +416,7 @@ export default function Stats({ user, onNavigate }) {
               <div className="month-info">
                 <p className="month-label">Pengeluaran {currentMonth}</p>
                 <p className="month-amount">Rp {currentMonthExpense.toLocaleString("id-ID")}</p>
+                <p className="month-detail">{currentMonthExpenses.length} transaksi pengeluaran</p>
               </div>
             </div>
 
@@ -334,6 +425,9 @@ export default function Stats({ user, onNavigate }) {
               <div className="month-info">
                 <p className="month-label">Balance {currentMonth}</p>
                 <p className="month-amount">Rp {Math.abs(currentMonthBalance).toLocaleString("id-ID")}</p>
+                <p className="month-detail">
+                  {currentMonthBalance >= 0 ? "Masih surplus bulan ini" : "Pengeluaran lebih besar bulan ini"}
+                </p>
               </div>
             </div>
           </div>

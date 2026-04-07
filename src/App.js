@@ -2,6 +2,12 @@ import React, { useState, useEffect } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { auth, db, OWNER_EMAIL } from "./firebase";
+import {
+  getGroupDataByGroupId,
+  isViewerBlockedStatus,
+  resolveViewerApprovalStatus,
+  subscribeToGroupByGroupId,
+} from "./approvalUtils";
 import { ensureOwnerGroup } from "./groupUtils";
 import Splash from "./Splash";
 import Login from "./login";
@@ -89,10 +95,31 @@ function App() {
                 approvalStatus: userData.approvalStatus || null,
               };
 
-              if (isOwner || userData.approvalStatus === "approved") {
+              let effectiveStatus = userData.approvalStatus || null;
+
+              if (!isOwner && userData.groupId) {
+                const groupData = await getGroupDataByGroupId(userData.groupId);
+                effectiveStatus = resolveViewerApprovalStatus({
+                  userData,
+                  groupData,
+                  viewerUid: firebaseUser.uid,
+                });
+              }
+
+              fullUser.approvalStatus = effectiveStatus;
+
+              if (isOwner || effectiveStatus === "approved") {
                 setUser(fullUser);
               } else {
                 setUser(null);
+
+                 if (!isOwner && isViewerBlockedStatus(effectiveStatus)) {
+                  try {
+                    await signOut(auth);
+                  } catch (logoutError) {
+                    console.error("Blocked viewer signout error:", logoutError);
+                  }
+                }
               }
             } catch (error) {
               console.error("Error restoring session:", error);
@@ -120,6 +147,54 @@ function App() {
       unsubscribeAuth();
     };
   }, []);
+
+  useEffect(() => {
+    if (!user || user.isOwner || !user.groupId) {
+      return () => {};
+    }
+
+    let hasShownLogoutAlert = false;
+
+    return subscribeToGroupByGroupId(
+      user.groupId,
+      async (groupData) => {
+        const effectiveStatus = resolveViewerApprovalStatus({
+          userData: user,
+          groupData,
+          viewerUid: user.uid,
+        });
+
+        if (effectiveStatus === "approved") {
+          return;
+        }
+
+        if (!isViewerBlockedStatus(effectiveStatus)) {
+          return;
+        }
+
+        try {
+          await signOut(auth);
+        } catch (logoutError) {
+          console.error("Viewer forced logout error:", logoutError);
+        } finally {
+          setUser(null);
+          setCurrentPage("menu");
+
+          if (!hasShownLogoutAlert) {
+            hasShownLogoutAlert = true;
+            window.alert(
+              effectiveStatus === "logged_out"
+                ? "Owner mengeluarkan akun ini dari group, jadi sesi viewer dihentikan."
+                : "Akses viewer sudah tidak aktif lagi."
+            );
+          }
+        }
+      },
+      (error) => {
+        console.error("Viewer group listener error:", error);
+      }
+    );
+  }, [user]);
 
   // Navigate to page with transition
   const handleNavigate = (page) => {

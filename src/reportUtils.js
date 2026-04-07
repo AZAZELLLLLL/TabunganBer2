@@ -232,6 +232,144 @@ function buildFileName(monthLabel) {
   return `laporan-tabungan-${slug}`;
 }
 
+function formatCurrency(value) {
+  return `Rp ${Number(value || 0).toLocaleString("id-ID")}`;
+}
+
+function buildSummaryRows(monthLabel, summary = {}) {
+  return [
+    ["Periode", monthLabel || "-"],
+    ["Total transaksi", Number(summary.totalTransactions || 0)],
+    ["Total tabungan", formatCurrency(summary.totalAmount || 0)],
+    ["Kontribusi cowo", formatCurrency(summary.cowoAmount || 0)],
+    ["Kontribusi cewe", formatCurrency(summary.ceweAmount || 0)],
+  ];
+}
+
+function buildSavingsRowsHtml(savings = []) {
+  return savings
+    .map((saving, index) => {
+      const amount = Number(saving.amount || 0).toLocaleString("id-ID");
+
+      return `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${escapeHtml(formatDateForTable(saving.date))}</td>
+          <td>${escapeHtml(formatTimeForTable(saving.date))}</td>
+          <td>${escapeHtml(saving.userName || "-")}</td>
+          <td>${escapeHtml(ROLE_LABELS[saving.role] || saving.role || "-")}</td>
+          <td>Rp ${escapeHtml(amount)}</td>
+        </tr>
+      `;
+    })
+    .join("");
+}
+
+function buildSavingsReportHtml({ savings = [], monthLabel = "", summary = {} }) {
+  const rowsHtml = buildSavingsRowsHtml(savings);
+  const summaryRowsHtml = buildSummaryRows(monthLabel, summary)
+    .map(
+      ([label, value]) => `
+        <tr>
+          <td class="summary-label">${escapeHtml(label)}</td>
+          <td>${escapeHtml(value)}</td>
+        </tr>
+      `
+    )
+    .join("");
+
+  return `
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>Laporan Detail Tabungan</title>
+        <style>
+          @page {
+            size: A4;
+            margin: 16mm;
+          }
+
+          * {
+            box-sizing: border-box;
+          }
+
+          body {
+            font-family: Arial, sans-serif;
+            color: #333;
+            margin: 0;
+            padding: 0;
+          }
+
+          h1 {
+            color: #5A4A5C;
+            margin-bottom: 8px;
+          }
+
+          .subtitle {
+            margin: 0 0 18px;
+            color: #8B6F9E;
+          }
+
+          .summary {
+            margin: 18px 0 22px;
+          }
+
+          .summary-table,
+          .detail-table {
+            border-collapse: collapse;
+            width: 100%;
+          }
+
+          .summary-table td,
+          .detail-table td,
+          .detail-table th {
+            border: 1px solid #d7c5d9;
+            padding: 8px 10px;
+            vertical-align: top;
+          }
+
+          .detail-table th {
+            background: #efe1f2;
+            text-align: left;
+          }
+
+          .summary-label {
+            width: 220px;
+            font-weight: bold;
+          }
+
+          .report-footer {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #8B6F9E;
+          }
+        </style>
+      </head>
+      <body>
+        <h1>Laporan Detail Tabungan</h1>
+        <p class="subtitle">Periode: ${escapeHtml(monthLabel || "-")}</p>
+        <div class="summary">
+          <table class="summary-table">${summaryRowsHtml}</table>
+        </div>
+        <table class="detail-table">
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Tanggal</th>
+              <th>Waktu</th>
+              <th>Nama</th>
+              <th>Tipe</th>
+              <th>Jumlah</th>
+            </tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+        <p class="report-footer">Laporan ini dibuat otomatis dari aplikasi tabungan berdua.</p>
+      </body>
+    </html>
+  `;
+}
+
 export function buildSavingsExportRows(savings = []) {
   return savings.map((saving, index) => ({
     No: index + 1,
@@ -274,84 +412,40 @@ export function exportSavingsToExcel({ savings = [], monthLabel = "", summary = 
 }
 
 export function exportSavingsToWord({ savings = [], monthLabel = "", summary = {} }) {
-  const rowsHtml = savings
-    .map((saving, index) => {
-      const amount = Number(saving.amount || 0).toLocaleString("id-ID");
-
-      return `
-        <tr>
-          <td>${index + 1}</td>
-          <td>${escapeHtml(formatDateForTable(saving.date))}</td>
-          <td>${escapeHtml(formatTimeForTable(saving.date))}</td>
-          <td>${escapeHtml(saving.userName || "-")}</td>
-          <td>${escapeHtml(ROLE_LABELS[saving.role] || saving.role || "-")}</td>
-          <td>Rp ${escapeHtml(amount)}</td>
-        </tr>
-      `;
-    })
-    .join("");
-
-  const html = `
-    <html>
-      <head>
-        <meta charset="utf-8" />
-        <title>Laporan Detail Tabungan</title>
-        <style>
-          body { font-family: Arial, sans-serif; color: #333; }
-          h1 { color: #5A4A5C; }
-          .summary { margin: 18px 0; }
-          .summary-table, .detail-table { border-collapse: collapse; width: 100%; }
-          .summary-table td, .detail-table td, .detail-table th {
-            border: 1px solid #d7c5d9;
-            padding: 8px 10px;
-          }
-          .detail-table th {
-            background: #efe1f2;
-            text-align: left;
-          }
-          .summary-label { width: 220px; font-weight: bold; }
-        </style>
-      </head>
-      <body>
-        <h1>Laporan Detail Tabungan</h1>
-        <p>Periode: ${escapeHtml(monthLabel)}</p>
-        <div class="summary">
-          <table class="summary-table">
-            <tr><td class="summary-label">Total transaksi</td><td>${Number(
-              summary.totalTransactions || 0
-            )}</td></tr>
-            <tr><td class="summary-label">Total tabungan</td><td>Rp ${Number(
-              summary.totalAmount || 0
-            ).toLocaleString("id-ID")}</td></tr>
-            <tr><td class="summary-label">Kontribusi cowo</td><td>Rp ${Number(
-              summary.cowoAmount || 0
-            ).toLocaleString("id-ID")}</td></tr>
-            <tr><td class="summary-label">Kontribusi cewe</td><td>Rp ${Number(
-              summary.ceweAmount || 0
-            ).toLocaleString("id-ID")}</td></tr>
-          </table>
-        </div>
-        <table class="detail-table">
-          <thead>
-            <tr>
-              <th>No</th>
-              <th>Tanggal</th>
-              <th>Waktu</th>
-              <th>Nama</th>
-              <th>Tipe</th>
-              <th>Jumlah</th>
-            </tr>
-          </thead>
-          <tbody>${rowsHtml}</tbody>
-        </table>
-      </body>
-    </html>
-  `;
+  const html = buildSavingsReportHtml({ savings, monthLabel, summary });
 
   downloadBlob(
     new Blob(["\ufeff", html], { type: "application/msword" }),
     `${buildFileName(monthLabel)}.doc`
   );
+}
+
+export function exportSavingsToPdf({ savings = [], monthLabel = "", summary = {} }) {
+  const html = buildSavingsReportHtml({ savings, monthLabel, summary });
+  const printWindow = window.open("", "_blank", "noopener,noreferrer,width=960,height=720");
+
+  if (!printWindow) {
+    throw new Error("Popup diblokir browser. Izinkan popup dulu agar export PDF bisa dibuka.");
+  }
+
+  printWindow.document.open();
+  printWindow.document.write(html);
+  printWindow.document.close();
+
+  let hasPrinted = false;
+  const triggerPrint = () => {
+    if (hasPrinted) return;
+    hasPrinted = true;
+    printWindow.focus();
+    printWindow.print();
+  };
+
+  printWindow.onload = triggerPrint;
+  printWindow.onafterprint = () => {
+    printWindow.close();
+  };
+
+  setTimeout(triggerPrint, 500);
 }
 
 export async function parseSavingsImportFile(file) {

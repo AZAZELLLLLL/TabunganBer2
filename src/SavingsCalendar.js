@@ -212,6 +212,15 @@ export default function SavingsCalendar({ user, onNavigate }) {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDayOfWeek = new Date(year, month, 1).getDay(); // 0=Min
   const holidayKeys = new Set(holidays.map((h) => h.dateKey));
+  const totalSavingDays = savingDates.size;
+  const currentMonthSavingDays = [...savingDates].filter((dateKey) => {
+    const [savingYear, savingMonth] = dateKey.split("-").map(Number);
+    return savingYear === year && savingMonth === month + 1;
+  }).length;
+  const currentMonthHolidayDays = holidays.filter((holiday) => {
+    const [holidayYear, holidayMonth] = holiday.dateKey.split("-").map(Number);
+    return holidayYear === year && holidayMonth === month + 1;
+  }).length;
 
   // Buat array sel: null = sel kosong, number = tanggal
   const cells = [];
@@ -247,6 +256,23 @@ export default function SavingsCalendar({ user, onNavigate }) {
           <div className="legend-item">
             <span className="legend-dot today-dot" />
             <span>Hari ini</span>
+          </div>
+        </div>
+
+        <div className="cal-stats">
+          <div className="cal-stat-card">
+            <span className="cal-stat-label">Sudah menabung</span>
+            <strong className="cal-stat-value">{totalSavingDays} hari</strong>
+          </div>
+          <div className="cal-stat-card">
+            <span className="cal-stat-label">
+              Menabung {MONTHS_LABEL[month]}
+            </span>
+            <strong className="cal-stat-value">{currentMonthSavingDays} hari</strong>
+          </div>
+          <div className="cal-stat-card">
+            <span className="cal-stat-label">Hari libur bulan ini</span>
+            <strong className="cal-stat-value">{currentMonthHolidayDays} hari</strong>
           </div>
         </div>
       </div>
@@ -317,27 +343,11 @@ export default function SavingsCalendar({ user, onNavigate }) {
         <div className="cal-summary">
           <div className="cal-summary-item">
             <span className="summary-dot green" />
-            <span>
-              {
-                [...savingDates].filter((k) => {
-                  const [y, m] = k.split("-");
-                  return parseInt(y) === year && parseInt(m) === month + 1;
-                }).length
-              }{" "}
-              hari menabung
-            </span>
+            <span>{currentMonthSavingDays} hari menabung</span>
           </div>
           <div className="cal-summary-item">
             <span className="summary-dot red" />
-            <span>
-              {
-                holidays.filter((h) => {
-                  const [y, m] = h.dateKey.split("-");
-                  return parseInt(y) === year && parseInt(m) === month + 1;
-                }).length
-              }{" "}
-              hari libur
-            </span>
+            <span>{currentMonthHolidayDays} hari libur</span>
           </div>
         </div>
       </div>

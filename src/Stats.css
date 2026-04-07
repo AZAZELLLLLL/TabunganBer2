@@ -119,6 +119,7 @@ body {
   border-radius: 15px;
   box-shadow: 0 10px 30px rgba(212, 134, 155, 0.1);
   border-left: 5px solid #D4869B;
+  overflow: hidden;
 }
 
 .chart-section h2 {
@@ -130,7 +131,40 @@ body {
 
 .chart-container {
   width: 100%;
-  height: 350px;
+  height: 390px;
+}
+
+.chart-legend {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #F2E5F2;
+}
+
+.chart-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #6E5A72;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.chart-legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+}
+
+.chart-legend-dot.income {
+  background: #27AE60;
+}
+
+.chart-legend-dot.expense {
+  background: #E74C3C;
 }
 
 /* Month Section */
@@ -246,6 +280,13 @@ body {
   font-size: 16px;
   font-weight: 700;
   margin: 0;
+}
+
+.month-detail {
+  color: #8B6F9E;
+  font-size: 11px;
+  margin: 6px 0 0;
+  line-height: 1.5;
 }
 
 /* Analysis Section */
@@ -511,7 +552,7 @@ body {
   }
 
   .chart-container {
-    height: 300px;
+    height: 340px;
   }
 }
 
@@ -554,7 +595,7 @@ body {
   }
 
   .chart-container {
-    height: 250px;
+    height: 320px;
   }
 
   .month-header {
@@ -641,7 +682,12 @@ body {
   }
 
   .chart-container {
-    height: 200px;
+    height: 300px;
+  }
+
+  .chart-legend {
+    justify-content: flex-start;
+    gap: 12px;
   }
 
   .month-header h2 {
@@ -676,6 +722,10 @@ body {
 
   .month-amount {
     font-size: 14px;
+  }
+
+  .month-detail {
+    font-size: 10px;
   }
 
   .analysis-section h2,
@@ -782,4 +832,8 @@ body {
 .recharts-text {
   font-family: "Plus Jakarta Sans", sans-serif !important;
   font-size: 12px !important;
+}
+
+.recharts-cartesian-axis-tick-value tspan {
+  fill: #7B6884;
 }

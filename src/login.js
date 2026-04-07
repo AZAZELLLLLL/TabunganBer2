@@ -2,6 +2,11 @@ import React, { useState } from "react";
 import { signInWithPopup, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { auth, googleProvider, db, OWNER_EMAIL } from "./firebase";
+import {
+  getGroupDataByGroupId,
+  isViewerBlockedStatus,
+  resolveViewerApprovalStatus,
+} from "./approvalUtils";
 import QRScan from "./QRScan";
 import WaitingApproval from "./WaitingApproval";
 import "./Login.css";
@@ -30,6 +35,7 @@ export default function LoginWithGender({ setUser }) {
   const [showRejected, setShowRejected] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [lastDeviceInfo, setLastDeviceInfo] = useState(null);
+  const [waitingGroupId, setWaitingGroupId] = useState(null);
 
   // ✅ Select Google Account
   const handleSelectGoogle = async () => {
@@ -80,6 +86,9 @@ export default function LoginWithGender({ setUser }) {
       
       if (userDoc.exists()) {
         const userData = userDoc.data();
+        const groupData = !isOwner && userData.groupId
+          ? await getGroupDataByGroupId(userData.groupId)
+          : null;
         
         await updateDoc(userRef, {
           name: fullName,
@@ -101,9 +110,24 @@ export default function LoginWithGender({ setUser }) {
             isOwner: true,
           });
         } else {
-          const status = userData.approvalStatus;
+          const effectiveStatus = resolveViewerApprovalStatus({
+            userData,
+            groupData,
+            viewerUid: googleUser.uid,
+          });
           
-          if (status === "approved") {
+          if (effectiveStatus === "approved") {
+            if (userData.approvalStatus !== "approved") {
+              try {
+                await updateDoc(userRef, {
+                  approvalStatus: "approved",
+                  updatedAt: new Date(),
+                });
+              } catch (syncError) {
+                console.warn("Viewer self-sync approval skipped:", syncError);
+              }
+            }
+
             setUser({
               uid: googleUser.uid,
               name: fullName,
@@ -114,12 +138,19 @@ export default function LoginWithGender({ setUser }) {
               groupId: userData.groupId,
               role: "viewer",
               isOwner: false,
+              approvalStatus: "approved",
             });
-          } else if (status === "pending") {
+          } else if (effectiveStatus === "pending") {
+            setLastDeviceInfo(userData.deviceInfo || null);
+            setWaitingGroupId(userData.groupId || null);
             setShowWaitingApproval(true);
-          } else if (status === "rejected") {
+          } else if (isViewerBlockedStatus(effectiveStatus)) {
             setShowRejected(true);
-            setRejectionReason("Owner rejected your request.");
+            setRejectionReason(
+              effectiveStatus === "logged_out"
+                ? "Owner mengeluarkan akun ini dari group. Silakan scan ulang kalau mau bergabung lagi."
+                : "Owner rejected your request."
+            );
           } else {
             setShowQRScan(true);
           }
@@ -189,6 +220,7 @@ export default function LoginWithGender({ setUser }) {
       });
 
       setLastDeviceInfo(deviceInfo);
+      setWaitingGroupId(groupId);
       setShowQRScan(false);
       setShowWaitingApproval(true);
     } catch (error) {
@@ -211,23 +243,29 @@ export default function LoginWithGender({ setUser }) {
           photo: userData.photo || googleUser.photoURL,
           googlePhoto: googleUser.photoURL,
           gender: gender,
-          groupId: userData.groupId,
+          groupId: userData.groupId || waitingGroupId,
           role: "viewer",
           isOwner: false,
         });
       }
       
       setShowWaitingApproval(false);
+      setWaitingGroupId(null);
     } catch (error) {
       console.error("Error:", error);
       alert("Error: " + error.message);
     }
   };
 
-  const handleApprovalRejected = () => {
+  const handleApprovalRejected = (status) => {
     setShowWaitingApproval(false);
     setShowRejected(true);
-    setRejectionReason("Owner rejected your request.");
+    setWaitingGroupId(null);
+    setRejectionReason(
+      status === "logged_out"
+        ? "Owner mengeluarkan akun ini dari group. Scan ulang QR kalau ingin masuk lagi."
+        : "Owner rejected your request."
+    );
   };
 
   // Show QR Scan
@@ -256,6 +294,7 @@ export default function LoginWithGender({ setUser }) {
           email: googleUser.email,
           photo: googleUser.photoURL,
           gender: gender,
+          groupId: waitingGroupId,
         }}
         deviceInfo={lastDeviceInfo}
         onApproved={handleApprovalApproved}
@@ -282,6 +321,8 @@ export default function LoginWithGender({ setUser }) {
                   setGoogleUser(null);
                   setFullName("");
                   setGender("");
+                  setWaitingGroupId(null);
+                  setLastDeviceInfo(null);
                 }}
                 style={{
                   width: "100%",
