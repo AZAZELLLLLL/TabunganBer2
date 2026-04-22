@@ -15,6 +15,11 @@ import {
   exportSavingsToWord,
   parseSavingsImportFile,
 } from "./reportUtils";
+import {
+  getDisplayProfileForRecord,
+  getProfileForRole,
+  useCoupleProfiles,
+} from "./coupleProfileUtils";
 import "./History.css";
 
 const REPORT_MONTH_STORAGE_KEY = "historyReportMonth";
@@ -50,6 +55,9 @@ export default function History({ user, onNavigate }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [importingSavings, setImportingSavings] = useState(false);
   const importInputRef = useRef(null);
+  const coupleProfiles = useCoupleProfiles(user.groupId);
+  const cowoProfile = getProfileForRole(coupleProfiles, "cowo");
+  const ceweProfile = getProfileForRole(coupleProfiles, "cewe");
 
   // Fetch savings data
   useEffect(() => {
@@ -117,6 +125,16 @@ export default function History({ user, onNavigate }) {
       return sDate >= monthStart && sDate <= monthEnd;
     })
     .filter((s) => filterPerson === "all" || s.role === filterPerson);
+  const reportSavings = filteredSavings.map((saving) => {
+    const displayProfile = getDisplayProfileForRecord(coupleProfiles, saving);
+
+    return {
+      ...saving,
+      userName: displayProfile.name,
+      userPhoto: displayProfile.photo || saving.userPhoto || "",
+      userId: displayProfile.uid || saving.userId || "",
+    };
+  });
 
   // Filtered expenses
   const filteredExpenses = expenses
@@ -124,12 +142,24 @@ export default function History({ user, onNavigate }) {
       const eDate = e.date?.toDate ? e.date.toDate() : new Date(e.date);
       return eDate >= monthStart && eDate <= monthEnd;
     })
-    .filter((e) => filterPerson === "all" || e.userRole === filterPerson)
+    .filter((e) => {
+      if (filterPerson === "all") return true;
+      return getDisplayProfileForRecord(coupleProfiles, e).role === filterPerson;
+    })
     .filter((e) => filterCategory === "all" || e.category === filterCategory)
     .filter((e) => 
       searchQuery === "" || 
       (e.description || "").toLowerCase().includes(searchQuery.toLowerCase())
     );
+  const reportExpenses = filteredExpenses.map((expense) => {
+    const displayProfile = getDisplayProfileForRecord(coupleProfiles, expense);
+
+    return {
+      ...expense,
+      userName: displayProfile.name,
+      userRole: displayProfile.role || expense.userRole || "",
+    };
+  });
 
   // Calculate totals
   const totalSavings = filteredSavings.reduce((sum, s) => sum + (s.amount || 0), 0);
@@ -220,7 +250,7 @@ export default function History({ user, onNavigate }) {
     }
 
     exportSavingsToExcel({
-      savings: filteredSavings,
+      savings: reportSavings,
       monthLabel: currentMonth,
       summary: savingsReportSummary,
     });
@@ -233,7 +263,7 @@ export default function History({ user, onNavigate }) {
     }
 
     exportSavingsToWord({
-      savings: filteredSavings,
+      savings: reportSavings,
       monthLabel: currentMonth,
       summary: savingsReportSummary,
     });
@@ -247,7 +277,7 @@ export default function History({ user, onNavigate }) {
 
     try {
       exportSavingsToPdf({
-        savings: filteredSavings,
+        savings: reportSavings,
         monthLabel: currentMonth,
         summary: savingsReportSummary,
       });
@@ -491,7 +521,7 @@ export default function History({ user, onNavigate }) {
                 <div className="breakdown-card cowo">
                   <div className="breakdown-icon">👨</div>
                   <div className="breakdown-info">
-                    <p className="breakdown-label">Kontribusi Cowo</p>
+                    <p className="breakdown-label">Kontribusi {cowoProfile.name}</p>
                     <p className="breakdown-amount">Rp {cowoSavings.toLocaleString("id-ID")}</p>
                     <p className="breakdown-detail">{filteredSavings.filter(s => s.role === "cowo").length} transaksi</p>
                   </div>
@@ -500,7 +530,7 @@ export default function History({ user, onNavigate }) {
                 <div className="breakdown-card cewe">
                   <div className="breakdown-icon">👩</div>
                   <div className="breakdown-info">
-                    <p className="breakdown-label">Kontribusi Cewe</p>
+                    <p className="breakdown-label">Kontribusi {ceweProfile.name}</p>
                     <p className="breakdown-amount">Rp {ceweSavings.toLocaleString("id-ID")}</p>
                     <p className="breakdown-detail">{filteredSavings.filter(s => s.role === "cewe").length} transaksi</p>
                   </div>
@@ -584,7 +614,7 @@ export default function History({ user, onNavigate }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredSavings.map((saving) => {
+                      {reportSavings.map((saving) => {
                         const savingDate = saving.date?.toDate 
                           ? saving.date.toDate()
                           : new Date(saving.date);
@@ -754,7 +784,7 @@ export default function History({ user, onNavigate }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredExpenses.map((expense) => {
+                      {reportExpenses.map((expense) => {
                         const expenseDate = expense.date?.toDate 
                           ? expense.date.toDate()
                           : new Date(expense.date);

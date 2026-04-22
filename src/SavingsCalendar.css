@@ -111,6 +111,7 @@
 }
 
 .legend-dot.green { background: #27AE60; }
+.legend-dot.orange { background: #F39C12; }
 .legend-dot.red   { background: #E74C3C; }
 .legend-dot.today-dot {
   background: white;
@@ -256,6 +257,10 @@
   background: #27AE60;
 }
 
+.orange-indicator {
+  background: #F39C12;
+}
+
 .red-indicator {
   background: #E74C3C;
 }
@@ -283,6 +288,11 @@
   font-weight: 700;
 }
 
+.cal-cell:has(.orange-indicator) .cal-date-num {
+  color: #C97A00;
+  font-weight: 700;
+}
+
 /* ── DUAL DOT (ada tabungan DAN libur) ────────────── */
 .cal-dual-dot {
   position: absolute;
@@ -300,6 +310,7 @@
 }
 
 .mini-dot.green-dot { background: #27AE60; }
+.mini-dot.orange-dot { background: #F39C12; }
 .mini-dot.red-dot   { background: #E74C3C; }
 
 /* ── RINGKASAN BULAN ────────────────────────────── */
@@ -328,6 +339,7 @@
   border-radius: 50%;
 }
 .summary-dot.green { background: #27AE60; }
+.summary-dot.orange { background: #F39C12; }
 .summary-dot.red   { background: #E74C3C; }
 
 /* ── DETAIL POPUP ─────────────────────────────────── */
@@ -414,6 +426,39 @@
   font-size: 14px;
   padding: 16px 0;
   margin: 0;
+}
+
+.detail-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.detail-status-card {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #ead9eb;
+  background: #fff9fc;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-status-card.saved {
+  background: #f1fff5;
+  border-color: #cce8d2;
+}
+
+.detail-status-card.missing {
+  background: #fff5f0;
+  border-color: #f0d7cb;
+}
+
+.detail-status-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #8B6F9E;
 }
 
 .detail-section-title {

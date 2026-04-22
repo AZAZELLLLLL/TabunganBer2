@@ -7,6 +7,11 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "./firebase";
+import {
+  getDisplayProfileForRecord,
+  getProfileForRole,
+  useCoupleProfiles,
+} from "./coupleProfileUtils";
 import "./Dashboard.css";
 
 const REPORT_MONTH_STORAGE_KEY = "historyReportMonth";
@@ -45,6 +50,9 @@ export default function Dashboard({ user, onNavigate }) {
     new Date().toISOString().split("T")[0]
   );
   const [loading, setLoading] = useState(false);
+  const coupleProfiles = useCoupleProfiles(user.groupId);
+  const cowoProfile = getProfileForRole(coupleProfiles, "cowo");
+  const ceweProfile = getProfileForRole(coupleProfiles, "cewe");
 
   useEffect(() => {
     console.log("Current user:", user);
@@ -131,6 +139,7 @@ export default function Dashboard({ user, onNavigate }) {
   const handleAddSavings = async (event, role) => {
     event.preventDefault();
     const amount = role === "cowo" ? cowoAmount : ceweAmount;
+    const roleProfile = getProfileForRole(coupleProfiles, role);
 
     if (!amount || parseFloat(amount) <= 0) {
       alert("Isi jumlah uang yang valid!");
@@ -142,11 +151,13 @@ export default function Dashboard({ user, onNavigate }) {
       const docData = {
         groupId: user.groupId || "default",
         role,
-        userName: user.name,
-        userPhoto: user.photo,
-        userId: user.uid,
+        userName: roleProfile.name,
+        userPhoto: roleProfile.photo || user.photo,
+        userId: roleProfile.uid || user.uid,
         amount: parseFloat(amount),
         date: new Date(savingDate),
+        inputByUserId: user.uid,
+        inputByName: user.name,
       };
 
       await addDoc(collection(db, "savings"), docData);
@@ -182,21 +193,25 @@ export default function Dashboard({ user, onNavigate }) {
       await addDoc(collection(db, "savings"), {
         groupId: user.groupId || "default",
         role: "cowo",
-        userName: user.name,
-        userPhoto: user.photo,
-        userId: user.uid,
+        userName: cowoProfile.name,
+        userPhoto: cowoProfile.photo || user.photo,
+        userId: cowoProfile.uid || user.uid,
         amount: parseFloat(cowoAmount),
         date: new Date(savingDate),
+        inputByUserId: user.uid,
+        inputByName: user.name,
       });
 
       await addDoc(collection(db, "savings"), {
         groupId: user.groupId || "default",
         role: "cewe",
-        userName: user.name,
-        userPhoto: user.photo,
-        userId: user.uid,
+        userName: ceweProfile.name,
+        userPhoto: ceweProfile.photo || user.photo,
+        userId: ceweProfile.uid || user.uid,
         amount: parseFloat(ceweAmount),
         date: new Date(savingDate),
+        inputByUserId: user.uid,
+        inputByName: user.name,
       });
 
       setCowoAmount("");
@@ -335,12 +350,12 @@ export default function Dashboard({ user, onNavigate }) {
             </div>
 
             <div className="summary-card cowo">
-              <p className="card-label">Tabungan Cowo</p>
+              <p className="card-label">Tabungan {cowoProfile.name}</p>
               <h3>Rp {cowoSavings.toLocaleString("id-ID")}</h3>
             </div>
 
             <div className="summary-card cewe">
-              <p className="card-label">Tabungan Cewe</p>
+              <p className="card-label">Tabungan {ceweProfile.name}</p>
               <h3>Rp {ceweSavings.toLocaleString("id-ID")}</h3>
             </div>
 
@@ -378,19 +393,19 @@ export default function Dashboard({ user, onNavigate }) {
               </div>
 
               <div className="month-summary-card">
-                <p className="month-summary-label">Kontribusi Cowo Bulan Ini</p>
+                <p className="month-summary-label">Kontribusi {cowoProfile.name} Bulan Ini</p>
                 <h4 className="month-summary-value">
                   Rp {currentMonthCowoSavings.toLocaleString("id-ID")}
                 </h4>
-                <small className="month-summary-meta">Bagian tabungan cowo bulan ini</small>
+                <small className="month-summary-meta">Bagian tabungan {cowoProfile.name.toLowerCase()} bulan ini</small>
               </div>
 
               <div className="month-summary-card">
-                <p className="month-summary-label">Kontribusi Cewe Bulan Ini</p>
+                <p className="month-summary-label">Kontribusi {ceweProfile.name} Bulan Ini</p>
                 <h4 className="month-summary-value">
                   Rp {currentMonthCeweSavings.toLocaleString("id-ID")}
                 </h4>
-                <small className="month-summary-meta">Bagian tabungan cewe bulan ini</small>
+                <small className="month-summary-meta">Bagian tabungan {ceweProfile.name.toLowerCase()} bulan ini</small>
               </div>
 
               <div className="month-summary-card report-card">
@@ -438,7 +453,7 @@ export default function Dashboard({ user, onNavigate }) {
 
             <div className="savings-form-grid">
               <div className="savings-form">
-                <h4>Tabungan Cowo</h4>
+                <h4>Tabungan {cowoProfile.name}</h4>
                 <form onSubmit={(event) => handleAddSavings(event, "cowo")} className="form">
                   <input
                     type="number"
@@ -461,7 +476,7 @@ export default function Dashboard({ user, onNavigate }) {
               </div>
 
               <div className="savings-form">
-                <h4>Tabungan Cewe</h4>
+                <h4>Tabungan {ceweProfile.name}</h4>
                 <form onSubmit={(event) => handleAddSavings(event, "cewe")} className="form">
                   <input
                     type="number"
@@ -506,6 +521,7 @@ export default function Dashboard({ user, onNavigate }) {
                   const displayAmount = `Rp ${Math.abs(
                     saving.amount || 0
                   ).toLocaleString("id-ID")}`;
+                  const displayProfile = getDisplayProfileForRecord(coupleProfiles, saving);
 
                   return (
                     <div
@@ -529,7 +545,7 @@ export default function Dashboard({ user, onNavigate }) {
                         </div>
                         <div className="saving-details">
                           <p className="saving-name">
-                            {isDeduction ? "Pengeluaran dari tabungan" : saving.userName}
+                            {isDeduction ? "Pengeluaran dari tabungan" : displayProfile.name}
                           </p>
                           <p className="saving-role">
                             {isDeduction

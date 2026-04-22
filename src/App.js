@@ -18,6 +18,7 @@ import Savings from "./Savings";
 import History from "./History";
 import Stats from "./Stats";
 import SavingsCalendar from "./SavingsCalendar";
+import Loans from "./Loans";
 import QRGenerator from "./QRGenerator";
 import PairingVerification from "./PairingVerification";
 import "./App.css";
@@ -112,14 +113,6 @@ function App() {
                 setUser(fullUser);
               } else {
                 setUser(null);
-
-                 if (!isOwner && isViewerBlockedStatus(effectiveStatus)) {
-                  try {
-                    await signOut(auth);
-                  } catch (logoutError) {
-                    console.error("Blocked viewer signout error:", logoutError);
-                  }
-                }
               }
             } catch (error) {
               console.error("Error restoring session:", error);
@@ -282,6 +275,10 @@ function App() {
 
         {currentPage === "calendar" && (
           <SavingsCalendar user={user} onNavigate={handleNavigate} />
+        )}
+
+        {currentPage === "loans" && (
+          <Loans user={user} onNavigate={handleNavigate} />
         )}
 
         {/* QR Generator - Owner Only */}

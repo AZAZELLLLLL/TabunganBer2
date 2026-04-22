@@ -145,12 +145,16 @@ export default function LoginWithGender({ setUser }) {
             setWaitingGroupId(userData.groupId || null);
             setShowWaitingApproval(true);
           } else if (isViewerBlockedStatus(effectiveStatus)) {
-            setShowRejected(true);
-            setRejectionReason(
+            const blockedMessage =
               effectiveStatus === "logged_out"
                 ? "Owner mengeluarkan akun ini dari group. Silakan scan ulang kalau mau bergabung lagi."
-                : "Owner rejected your request."
-            );
+                : "Request sebelumnya ditolak. Silakan scan ulang QR kalau mau minta akses lagi.";
+
+            setRejectionReason(blockedMessage);
+            setWaitingGroupId(userData.groupId || null);
+            setLastDeviceInfo(userData.deviceInfo || null);
+            alert(blockedMessage);
+            setShowQRScan(true);
           } else {
             setShowQRScan(true);
           }
@@ -259,13 +263,14 @@ export default function LoginWithGender({ setUser }) {
 
   const handleApprovalRejected = (status) => {
     setShowWaitingApproval(false);
-    setShowRejected(true);
     setWaitingGroupId(null);
-    setRejectionReason(
+    const blockedMessage =
       status === "logged_out"
         ? "Owner mengeluarkan akun ini dari group. Scan ulang QR kalau ingin masuk lagi."
-        : "Owner rejected your request."
-    );
+        : "Owner menolak request ini. Scan ulang QR kalau ingin minta akses lagi.";
+    setRejectionReason(blockedMessage);
+    alert(blockedMessage);
+    setShowQRScan(true);
   };
 
   // Show QR Scan
