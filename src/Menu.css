@@ -191,14 +191,6 @@
   background: linear-gradient(135deg, rgba(107, 115, 255, 0.05), rgba(255, 248, 240, 0.5));
 }
 
-.menu-card-loans {
-  border-left-color: #F39C12;
-}
-
-.menu-card-loans:hover {
-  background: linear-gradient(135deg, rgba(243, 156, 18, 0.08), rgba(255, 248, 240, 0.5));
-}
-
 /* QR Generator / Pairing Card (Owner Only) */
 .menu-card-pairing {
   border-left-color: #8B6F9E;

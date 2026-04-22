@@ -96,13 +96,6 @@ export default function Menu({ user, onNavigate, onLogout }) {
       description: "Lihat kalender tabungan dan hari libur",
       color: "calendar",
     },
-    {
-      id: "loans",
-      emoji: "ðŸ§¾",
-      label: "Pinjaman",
-      description: "Catat pinjaman dan pantau pelunasannya",
-      color: "loans",
-    },
   ];
 
   // Owner-only menu items
