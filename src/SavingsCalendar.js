@@ -18,6 +18,7 @@ import {
   getProfileForRole,
   useCoupleProfiles,
 } from "./coupleProfileUtils";
+import { isRegularSaving } from "./savingsDataUtils";
 import "./SavingsCalendar.css";
 
 const DAYS_LABEL = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
@@ -85,7 +86,7 @@ export default function SavingsCalendar({ user, onNavigate }) {
           id: entry.id,
           ...entry.data(),
         }))
-        .filter((saving) => saving.role && saving.role !== "deduction");
+        .filter(isRegularSaving);
       setSavings(nextSavings);
     });
   }, [groupId]);
@@ -274,7 +275,7 @@ export default function SavingsCalendar({ user, onNavigate }) {
       <div className="cal-header">
         <h1 className="cal-title">Kalender Tabungan</h1>
         <p className="cal-subtitle">
-          Hijau untuk setor berdua, oren saat baru salah satu, merah saat belum setor atau libur.
+          Hijau untuk setor berdua, oren saat baru salah satu, dan merah khusus hari libur.
         </p>
 
         <div className="cal-legend">
@@ -288,7 +289,7 @@ export default function SavingsCalendar({ user, onNavigate }) {
           </div>
           <div className="legend-item">
             <span className="legend-dot red" />
-            <span>Belum menabung / libur</span>
+            <span>Hari libur</span>
           </div>
           <div className="legend-item">
             <span className="legend-dot today-dot" />
@@ -392,7 +393,7 @@ export default function SavingsCalendar({ user, onNavigate }) {
           </div>
           <div className="cal-summary-item">
             <span className="summary-dot red" />
-            <span>{monthStatusCounts.red} hari belum setor / libur</span>
+            <span>{monthStatusCounts.red} hari libur</span>
           </div>
         </div>
       </div>

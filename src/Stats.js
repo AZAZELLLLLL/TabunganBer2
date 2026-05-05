@@ -18,6 +18,11 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import {
+  getProfileForRole,
+  useCoupleProfiles,
+} from "./coupleProfileUtils";
+import { isRegularSaving } from "./savingsDataUtils";
 import "./Stats.css";
 
 function toDateObject(value) {
@@ -56,6 +61,9 @@ export default function Stats({ user, onNavigate }) {
   const [savings, setSavings] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const coupleProfiles = useCoupleProfiles(user.groupId);
+  const cowoProfile = getProfileForRole(coupleProfiles, "cowo");
+  const ceweProfile = getProfileForRole(coupleProfiles, "cewe");
 
   // Fetch savings
   useEffect(() => {
@@ -92,7 +100,7 @@ export default function Stats({ user, onNavigate }) {
   }, [user.groupId]);
 
   // Filter regular savings (no deductions)
-  const regularSavings = savings.filter(s => s.role && s.role !== "deduction");
+  const regularSavings = savings.filter(isRegularSaving);
 
   // Calculate monthly data for chart
   const getMonthlyData = () => {
@@ -233,8 +241,8 @@ export default function Stats({ user, onNavigate }) {
     .reduce((sum, s) => sum + (s.amount || 0), 0);
 
   const personData = [
-    { name: "Cowo", value: cowoIncome, icon: "👨" },
-    { name: "Cewe", value: ceweIncome, icon: "👩" },
+    { name: cowoProfile.name, value: cowoIncome, icon: "👨" },
+    { name: ceweProfile.name, value: ceweIncome, icon: "👩" },
   ];
 
   const COLORS = ["#3498DB", "#E74C3C"];
@@ -574,7 +582,9 @@ export default function Stats({ user, onNavigate }) {
               <div className="insight-content">
                 <p className="insight-title">Kontributor Utama</p>
                 <p className="insight-value">
-                  {cowoIncome > ceweIncome ? "👨 Cowo" : "👩 Cewe"}
+                  {cowoIncome > ceweIncome
+                    ? `👨 ${cowoProfile.name}`
+                    : `👩 ${ceweProfile.name}`}
                 </p>
                 <p className="insight-text">
                   {cowoIncome > ceweIncome 

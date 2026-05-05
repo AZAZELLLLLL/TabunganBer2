@@ -12,6 +12,12 @@ import {
   getProfileForRole,
   useCoupleProfiles,
 } from "./coupleProfileUtils";
+import {
+  getTotalSavingsBalance,
+  isDeductionSaving,
+  isLoanAdjustmentSaving,
+  isRegularSaving,
+} from "./savingsDataUtils";
 import "./Dashboard.css";
 
 const REPORT_MONTH_STORAGE_KEY = "historyReportMonth";
@@ -225,10 +231,8 @@ export default function Dashboard({ user, onNavigate }) {
     }
   };
 
-  const totalSavings = savings.reduce((sum, saving) => sum + (saving.amount || 0), 0);
-  const regularSavings = savings.filter(
-    (saving) => saving.role && saving.role !== "deduction"
-  );
+  const totalSavings = getTotalSavingsBalance(savings);
+  const regularSavings = savings.filter(isRegularSaving);
 
   const cowoSavings = regularSavings
     .filter((saving) => saving.role === "cowo")
@@ -345,7 +349,7 @@ export default function Dashboard({ user, onNavigate }) {
               <p className="card-label">Total Tabungan Berdua</p>
               <h2>Rp {totalSavings.toLocaleString("id-ID")}</h2>
               <p className="card-subtitle">
-                Dari {regularSavings.length} transaksi tabungan
+                Saldo aktif setelah pengeluaran dan pinjaman
               </p>
             </div>
 
@@ -517,19 +521,71 @@ export default function Dashboard({ user, onNavigate }) {
             ) : (
               <div className="savings-list">
                 {savings.slice(0, 10).map((saving) => {
-                  const isDeduction = saving.role === "deduction";
+                  const isDeduction = isDeductionSaving(saving);
+                  const isLoanAdjustment = isLoanAdjustmentSaving(saving);
                   const displayAmount = `Rp ${Math.abs(
                     saving.amount || 0
                   ).toLocaleString("id-ID")}`;
                   const displayProfile = getDisplayProfileForRecord(coupleProfiles, saving);
+                  const isLoanRepayment = saving.type === "loan_repayment";
+                  const cardBorderColor = isDeduction
+                    ? "#E74C3C"
+                    : isLoanAdjustment
+                      ? isLoanRepayment
+                        ? "#27AE60"
+                        : "#F39C12"
+                      : "#D4869B";
+                  const cardBackground = isDeduction
+                    ? "#FFE8E8"
+                    : isLoanAdjustment
+                      ? isLoanRepayment
+                        ? "#ECFFF3"
+                        : "#FFF5E8"
+                      : "#FFF8F0";
+                  const avatarLabel = isDeduction
+                    ? "Rp"
+                    : isLoanAdjustment
+                      ? isLoanRepayment
+                        ? "IN"
+                        : "OUT"
+                      : saving.role === "cowo"
+                        ? "C"
+                        : "W";
+                  const title = isDeduction
+                    ? "Pengeluaran dari tabungan"
+                    : isLoanAdjustment
+                      ? isLoanRepayment
+                        ? "Pelunasan pinjaman"
+                        : "Pinjaman dari tabungan"
+                      : displayProfile.name;
+                  const subtitle = isDeduction
+                    ? saving.description || "Pengurangan saldo tabungan"
+                    : isLoanAdjustment
+                      ? saving.description ||
+                        (isLoanRepayment
+                          ? "Dana pinjaman sudah kembali"
+                          : "Saldo tabungan sedang dipinjam")
+                      : saving.role === "cowo"
+                        ? "Cowok"
+                        : "Cewe";
+                  const amountColor = isDeduction
+                    ? "#E74C3C"
+                    : isLoanAdjustment
+                      ? isLoanRepayment
+                        ? "#27AE60"
+                        : "#F39C12"
+                      : "#27AE60";
+                  const amountPrefix = isDeduction || (isLoanAdjustment && !isLoanRepayment)
+                    ? "-"
+                    : "+";
 
                   return (
                     <div
                       key={saving.id}
                       className="savings-item"
                       style={{
-                        borderLeftColor: isDeduction ? "#E74C3C" : "#D4869B",
-                        background: isDeduction ? "#FFE8E8" : "#FFF8F0",
+                        borderLeftColor: cardBorderColor,
+                        background: cardBackground,
                       }}
                     >
                       <div className="saving-info">
@@ -538,32 +594,26 @@ export default function Dashboard({ user, onNavigate }) {
                           style={{
                             background: isDeduction
                               ? "rgba(231, 76, 60, 0.1)"
-                              : "rgba(212, 134, 155, 0.1)",
+                              : isLoanAdjustment
+                                ? "rgba(243, 156, 18, 0.12)"
+                                : "rgba(212, 134, 155, 0.1)",
                           }}
                         >
-                          {isDeduction ? "Rp" : saving.role === "cowo" ? "C" : "W"}
+                          {avatarLabel}
                         </div>
                         <div className="saving-details">
-                          <p className="saving-name">
-                            {isDeduction ? "Pengeluaran dari tabungan" : displayProfile.name}
-                          </p>
-                          <p className="saving-role">
-                            {isDeduction
-                              ? saving.description || "Pengurangan saldo tabungan"
-                              : saving.role === "cowo"
-                                ? "Cowok"
-                                : "Cewe"}
-                          </p>
+                          <p className="saving-name">{title}</p>
+                          <p className="saving-role">{subtitle}</p>
                           <p className="saving-date">{formatDateLabel(saving.date)}</p>
                         </div>
                       </div>
                       <div
                         className="saving-amount"
                         style={{
-                          color: isDeduction ? "#E74C3C" : "#27AE60",
+                          color: amountColor,
                         }}
                       >
-                        {isDeduction ? "-" : "+"}
+                        {amountPrefix}
                         {displayAmount}
                       </div>
                     </div>

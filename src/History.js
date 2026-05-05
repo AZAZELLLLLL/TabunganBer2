@@ -20,6 +20,7 @@ import {
   getProfileForRole,
   useCoupleProfiles,
 } from "./coupleProfileUtils";
+import { isRegularSaving } from "./savingsDataUtils";
 import "./History.css";
 
 const REPORT_MONTH_STORAGE_KEY = "historyReportMonth";
@@ -100,7 +101,7 @@ export default function History({ user, onNavigate }) {
   }, [user.groupId]);
 
   // Filter savings (hanya yang bukan deduction)
-  const regularSavings = savings.filter(s => s.role && s.role !== "deduction");
+  const regularSavings = savings.filter(isRegularSaving);
 
   // Filter by month
   const monthStart = new Date(

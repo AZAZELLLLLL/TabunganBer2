@@ -1,18 +1,18 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  addDoc,
   collection,
   doc,
   onSnapshot,
   query,
-  updateDoc,
   where,
+  writeBatch,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import {
   getProfileForRole,
   useCoupleProfiles,
 } from "./coupleProfileUtils";
+import { getTotalSavingsBalance } from "./savingsDataUtils";
 import "./Loans.css";
 
 function toDateObject(value) {
@@ -36,6 +36,7 @@ function formatDate(value) {
 
 export default function Loans({ user, onNavigate }) {
   const [loans, setLoans] = useState([]);
+  const [savings, setSavings] = useState([]);
   const [amount, setAmount] = useState("");
   const [borrowerRole, setBorrowerRole] = useState(user.gender || "cowo");
   const [loanDate, setLoanDate] = useState(new Date().toISOString().split("T")[0]);
@@ -72,6 +73,28 @@ export default function Loans({ user, onNavigate }) {
     );
   }, [user.groupId]);
 
+  useEffect(() => {
+    const groupId = user.groupId || "default";
+    const savingsQuery = query(
+      collection(db, "savings"),
+      where("groupId", "==", groupId)
+    );
+
+    return onSnapshot(
+      savingsQuery,
+      (snapshot) => {
+        const nextSavings = snapshot.docs.map((entry) => ({
+          id: entry.id,
+          ...entry.data(),
+        }));
+        setSavings(nextSavings);
+      },
+      (error) => {
+        console.error("Loans savings listener error:", error);
+      }
+    );
+  }, [user.groupId]);
+
   const activeLoans = useMemo(
     () => loans.filter((loan) => loan.status !== "paid"),
     [loans]
@@ -82,6 +105,7 @@ export default function Loans({ user, onNavigate }) {
   );
   const activeAmount = activeLoans.reduce((sum, loan) => sum + Number(loan.amount || 0), 0);
   const paidAmount = paidLoans.reduce((sum, loan) => sum + Number(loan.amount || 0), 0);
+  const currentSavingsBalance = getTotalSavingsBalance(savings);
 
   const handleAddLoan = async (event) => {
     event.preventDefault();
@@ -91,7 +115,9 @@ export default function Loans({ user, onNavigate }) {
       return;
     }
 
-    if (!amount || Number(amount) <= 0) {
+    const loanAmount = Number(amount || 0);
+
+    if (!loanAmount || loanAmount <= 0) {
       alert("Masukkan jumlah pinjaman yang valid.");
       return;
     }
@@ -101,33 +127,59 @@ export default function Loans({ user, onNavigate }) {
       return;
     }
 
+    if (loanAmount > currentSavingsBalance) {
+      alert("Jumlah pinjaman melebihi saldo tabungan yang tersedia.");
+      return;
+    }
+
     setLoading(true);
 
     try {
       const borrowerProfile = getProfileForRole(coupleProfiles, borrowerRole);
+      const loanRef = doc(collection(db, "loans"));
+      const adjustmentRef = doc(collection(db, "savings"));
+      const batch = writeBatch(db);
+      const createdAt = new Date();
 
-      await addDoc(collection(db, "loans"), {
+      batch.set(loanRef, {
         groupId: user.groupId || "default",
         borrowerRole,
         borrowerName: borrowerProfile.name,
         borrowerUid: borrowerProfile.uid || null,
-        amount: Number(amount),
+        amount: loanAmount,
         loanDate: new Date(loanDate),
         dueDate: new Date(dueDate),
         note: note.trim(),
         status: "active",
-        createdAt: new Date(),
+        disbursementSavingId: adjustmentRef.id,
+        createdAt,
         createdBy: user.uid,
         createdByName: user.name,
-        updatedAt: new Date(),
+        updatedAt: createdAt,
       });
+
+      batch.set(adjustmentRef, {
+        groupId: user.groupId || "default",
+        role: "adjustment",
+        type: "loan_disbursement",
+        amount: -loanAmount,
+        date: new Date(loanDate),
+        description: `Pinjaman oleh ${borrowerProfile.name}`,
+        loanId: loanRef.id,
+        userId: borrowerProfile.uid || null,
+        userName: borrowerProfile.name,
+        createdAt,
+        createdBy: user.uid,
+      });
+
+      await batch.commit();
 
       setAmount("");
       setBorrowerRole(user.gender || "cowo");
       setLoanDate(new Date().toISOString().split("T")[0]);
       setDueDate("");
       setNote("");
-      alert("Data pinjaman berhasil ditambahkan.");
+      alert("Data pinjaman berhasil ditambahkan dan saldo tabungan sudah dikurangi.");
     } catch (error) {
       console.error("Add loan error:", error);
       alert(`Gagal menambah pinjaman: ${error.message}`);
@@ -147,12 +199,34 @@ export default function Loans({ user, onNavigate }) {
     }
 
     try {
-      await updateDoc(doc(db, "loans", loan.id), {
+      const repaymentRef = doc(collection(db, "savings"));
+      const loanRef = doc(db, "loans", loan.id);
+      const batch = writeBatch(db);
+      const paidAt = new Date();
+
+      batch.update(loanRef, {
         status: "paid",
-        paidAt: new Date(),
-        updatedAt: new Date(),
+        paidAt,
+        repaymentSavingId: repaymentRef.id,
+        updatedAt: paidAt,
       });
-      alert("Pinjaman berhasil ditandai lunas.");
+
+      batch.set(repaymentRef, {
+        groupId: user.groupId || "default",
+        role: "adjustment",
+        type: "loan_repayment",
+        amount: Number(loan.amount || 0),
+        date: paidAt,
+        description: `Pelunasan pinjaman ${loan.borrowerName}`,
+        loanId: loan.id,
+        userId: loan.borrowerUid || null,
+        userName: loan.borrowerName,
+        createdAt: paidAt,
+        createdBy: user.uid,
+      });
+
+      await batch.commit();
+      alert("Pinjaman berhasil ditandai lunas dan saldo tabungan sudah dikembalikan.");
     } catch (error) {
       console.error("Mark loan paid error:", error);
       alert(`Gagal menandai lunas: ${error.message}`);
@@ -187,7 +261,7 @@ export default function Loans({ user, onNavigate }) {
         <div className="loans-container">
           <div className="loans-header">
             <h1>Pinjaman</h1>
-            <p>Catat siapa yang pinjam, kapan jatuh tempo, dan kapan sudah lunas.</p>
+            <p>Catat pinjaman dari saldo tabungan dan kembalikan lagi saat lunas.</p>
           </div>
 
           <div className="loans-summary-grid">
@@ -197,9 +271,9 @@ export default function Loans({ user, onNavigate }) {
               <small>Rp {activeAmount.toLocaleString("id-ID")}</small>
             </div>
             <div className="loans-summary-card due">
-              <span className="loans-summary-label">Yang sedang dipinjam</span>
-              <strong className="loans-summary-value">Rp {activeAmount.toLocaleString("id-ID")}</strong>
-              <small>Total nominal belum lunas</small>
+              <span className="loans-summary-label">Saldo tabungan tersedia</span>
+              <strong className="loans-summary-value">Rp {currentSavingsBalance.toLocaleString("id-ID")}</strong>
+              <small>Sudah memperhitungkan pengeluaran dan pinjaman</small>
             </div>
             <div className="loans-summary-card paid">
               <span className="loans-summary-label">Sudah lunas</span>
@@ -214,7 +288,7 @@ export default function Loans({ user, onNavigate }) {
                 <h2>Input Pinjaman</h2>
                 <p>
                   {canEdit
-                    ? "Owner bisa menambah data pinjaman dan menandai pelunasan."
+                    ? "Owner bisa menambah pinjaman dan menandai pelunasan. Saldo tabungan akan berubah otomatis."
                     : "Viewer bisa melihat data pinjaman, tetapi tidak bisa mengubahnya."}
                 </p>
               </div>
@@ -281,7 +355,7 @@ export default function Loans({ user, onNavigate }) {
                     rows="4"
                     value={note}
                     onChange={(event) => setNote(event.target.value)}
-                    placeholder="Contoh: Dipakai untuk keperluan keluarga, belanja mendadak, dan lain-lain"
+                    placeholder="Contoh: Dipakai untuk kebutuhan mendadak, bayar sesuatu dulu, dan lain-lain"
                     disabled={!canEdit || loading}
                   />
                 </div>

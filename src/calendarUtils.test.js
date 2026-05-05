@@ -36,20 +36,22 @@ describe("calendarUtils", () => {
     expect(status).toBe("orange");
   });
 
-  test("counts red days only for non-future dates without savings", () => {
+  test("counts red days only for configured holidays and leaves empty days uncounted", () => {
     const counts = countCalendarStatuses({
       year: 2026,
       month: 3,
-      daysInMonth: 3,
+      daysInMonth: 4,
       savingsDayMap: buildSavingsDayMap([
         { role: "cowo", amount: 10000, date: new Date("2026-04-01T00:00:00") },
         { role: "cewe", amount: 10000, date: new Date("2026-04-01T00:00:00") },
+        { role: "cowo", amount: 5000, date: new Date("2026-04-03T00:00:00") },
       ]),
       holidayKeys: new Set(["2026-04-02"]),
-      todayKey: "2026-04-02",
+      todayKey: "2026-04-04",
     });
 
     expect(counts.green).toBe(1);
+    expect(counts.orange).toBe(1);
     expect(counts.red).toBe(1);
   });
 });

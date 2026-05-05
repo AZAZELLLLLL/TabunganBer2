@@ -74,7 +74,7 @@ export function getCalendarDayStatus({
     return "empty";
   }
 
-  return "red";
+  return "empty";
 }
 
 export function countCalendarStatuses({
